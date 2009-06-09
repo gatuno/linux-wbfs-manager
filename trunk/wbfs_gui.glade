@@ -25,11 +25,12 @@
                   <widget class="GtkMenu" id="menu1">
                     <property name="visible">True</property>
                     <child>
-                      <widget class="GtkImageMenuItem" id="imagemenuitem5">
+                      <widget class="GtkImageMenuItem" id="menu_quit">
                         <property name="label">gtk-quit</property>
                         <property name="visible">True</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
+                        <signal name="activate" handler="menu_quit_activate_cb"/>
                       </widget>
                     </child>
                   </widget>
@@ -45,11 +46,12 @@
                   <widget class="GtkMenu" id="menu3">
                     <property name="visible">True</property>
                     <child>
-                      <widget class="GtkImageMenuItem" id="imagemenuitem10">
+                      <widget class="GtkImageMenuItem" id="menu_about">
                         <property name="label">gtk-about</property>
                         <property name="visible">True</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
+                        <signal name="activate" handler="menu_about_activate_cb"/>
                       </widget>
                     </child>
                   </widget>
@@ -87,7 +89,7 @@
                 <child>
                   <widget class="GtkComboBox" id="device_list">
                     <property name="visible">True</property>
-                    <property name="tooltip" translatable="yes">Select device to read</property>
+                    <property name="tooltip" translatable="yes">Select device</property>
                     <property name="items" translatable="yes">(empty)</property>
                   </widget>
                 </child>
@@ -99,7 +101,7 @@
             <child>
               <widget class="GtkToolButton" id="reload_device">
                 <property name="visible">True</property>
-                <property name="tooltip" translatable="yes">Load device</property>
+                <property name="tooltip" translatable="yes">Load selected device</property>
                 <property name="label" translatable="yes">Load device</property>
                 <property name="stock_id">gtk-ok</property>
                 <signal name="clicked" handler="reload_device_clicked_cb"/>
@@ -133,8 +135,6 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="border_width">5</property>
-            <property name="position">400</property>
-            <property name="position_set">True</property>
             <child>
               <widget class="GtkVBox" id="vbox3">
                 <property name="visible">True</property>
@@ -147,7 +147,7 @@
                       <widget class="GtkLabel" id="label1">
                         <property name="visible">True</property>
                         <property name="xalign">0</property>
-                        <property name="label" translatable="yes">ROMs on device:</property>
+                        <property name="label" translatable="yes">Contents of device:</property>
                       </widget>
                       <packing>
                         <property name="expand">False</property>
@@ -196,7 +196,7 @@
                     <property name="visible">True</property>
                     <child>
                       <widget class="GtkButton" id="rom_extract">
-                        <property name="label" translatable="yes">Extract ROM</property>
+                        <property name="label" translatable="yes">Extract ISO</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
@@ -208,7 +208,7 @@
                     </child>
                     <child>
                       <widget class="GtkButton" id="rom_remove">
-                        <property name="label" translatable="yes">Remove ROM</property>
+                        <property name="label" translatable="yes">Remove ISO</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
@@ -255,6 +255,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
+                        <property name="tooltip" translatable="yes">Go to home directory</property>
                         <property name="use_stock">True</property>
                         <signal name="clicked" handler="fs_go_home_clicked_cb"/>
                       </widget>
@@ -268,7 +269,7 @@
                       <widget class="GtkEntry" id="fs_cur_dir">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="tooltip" translatable="yes">Viewing local directory</property>
+                        <property name="tooltip" translatable="yes">Current directory</property>
                         <signal name="activate" handler="fs_cur_dir_activate_cb"/>
                       </widget>
                       <packing>
@@ -319,7 +320,7 @@
                 </child>
                 <child>
                   <widget class="GtkButton" id="fs_add_rom">
-                    <property name="label" translatable="yes">Add ROM</property>
+                    <property name="label" translatable="yes">Add ISO</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
@@ -350,6 +351,49 @@
           <packing>
             <property name="expand">False</property>
             <property name="position">3</property>
+          </packing>
+        </child>
+      </widget>
+    </child>
+  </widget>
+  <widget class="GtkAboutDialog" id="about_dialog">
+    <property name="border_width">5</property>
+    <property name="type_hint">normal</property>
+    <property name="program_name">Linux WBFS Manager</property>
+    <property name="version">0.0.1</property>
+    <property name="copyright" translatable="yes">Copyright (C) 2009 Ricardo R. Massaro
+Copyright (C) 2009 Kwiirk</property>
+    <property name="website">http://code.google.com/p/linux-wbfs-manager/</property>
+    <property name="license" translatable="yes">GNU General Public License v2
+
+http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+</property>
+    <property name="authors">Ricardo Massaro
+Kwirk
+</property>
+    <signal name="response" handler="about_dialog_response_cb"/>
+    <child internal-child="vbox">
+      <widget class="GtkVBox" id="dialog-vbox1">
+        <property name="visible">True</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child>
+          <widget class="GtkLabel" id="label1">
+            <property name="visible">True</property>
+          </widget>
+          <packing>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child internal-child="action_area">
+          <widget class="GtkHButtonBox" id="dialog-action_area1">
+            <property name="visible">True</property>
+            <property name="layout_style">end</property>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+            <property name="pack_type">end</property>
+            <property name="position">0</property>
           </packing>
         </child>
       </widget>
