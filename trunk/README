@@ -1,0 +1,17 @@
+-*- text -*-
+
+This is yet another graphic WBFS manager for Linux.
+
+It uses libwbfs from Kwiirk available at
+
+  http://github.com/kwiirk/wbfs/tree/master
+
+WARNINGS
+
+  - This program is currently in alpha stage, most intended
+    functionality is not present.
+
+  - It might eat all your partitions, I offer no warranty
+    whatsoever. Use at your own risk.
+
+- MoeFH (ricardo.massaro@gmail.com)
