@@ -457,6 +457,30 @@ void main_window_delete_event_cb(GtkWidget *w, gpointer data)
   gtk_main_quit();
 }
 
+void menu_quit_activate_cb(GtkWidget *w, gpointer data)
+{
+  gtk_main_quit();
+}
+
+void menu_about_activate_cb(GtkWidget *w, gpointer data)
+{
+  GtkWidget *main_window;
+  GtkWidget *about_dialog;
+
+  main_window = glade_xml_get_widget(glade_xml, "main_window");
+  about_dialog = glade_xml_get_widget(glade_xml, "about_dialog");
+  gtk_window_set_transient_for(GTK_WINDOW(about_dialog), GTK_WINDOW(main_window));
+  gtk_dialog_run(GTK_DIALOG(about_dialog));
+}
+
+void about_dialog_response_cb(GtkWidget *w, gpointer data)
+{
+  GtkWidget *about_dialog;
+
+  about_dialog = glade_xml_get_widget(glade_xml, "about_dialog");
+  gtk_widget_hide(about_dialog);
+}
+
 int main(int argc, char *argv[])
 {
   GtkWidget *main_window;
