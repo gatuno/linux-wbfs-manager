@@ -184,6 +184,8 @@
                       <widget class="GtkTreeView" id="iso_list">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="events">GDK_BUTTON_PRESS_MASK | GDK_STRUCTURE_MASK</property>
+                        <signal name="button_press_event" handler="iso_list_button_press_event_cb"/>
                       </widget>
                     </child>
                   </widget>
