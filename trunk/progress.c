@@ -36,13 +36,11 @@ static void do_update(int cur, int max)
 
 void progress_dialog_close_cb(GtkDialog *d, gpointer data)
 {
-  printf("close\n");
   *prog_cancel_indicator = 1;
 }
 
 void progress_dialog_map_event_cb(GtkWidget *w, gpointer data)
 {
-  printf("start\n");
   if (prog_starter_data != NULL) {
     GtkWidget *progress_dialog;
 
@@ -54,7 +52,6 @@ void progress_dialog_map_event_cb(GtkWidget *w, gpointer data)
 
 void progress_button_clicked_cb(GtkButton *b, gpointer data)
 {
-  printf("cancel\n");
   *prog_cancel_indicator = 1;
 }
 

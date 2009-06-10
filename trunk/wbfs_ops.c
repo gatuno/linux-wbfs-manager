@@ -19,6 +19,34 @@
 
 int cancel_wbfs_op;
 
+void dump_wbfs_info(void)
+{
+  wbfs_t *wbfs = app_state.wbfs;
+
+  printf("----------------------------\n");
+  printf("hd_sec_sz     = %d\n", wbfs->hd_sec_sz);
+  printf("hd_sec_sz_s   = %d\n", wbfs->hd_sec_sz_s);
+  printf("n_hd_sec      = %d\n", wbfs->n_hd_sec);
+  printf("TOTAL         = %lld\n", (u64) wbfs->n_hd_sec * wbfs->hd_sec_sz);
+
+  printf("----------------------------\n");
+  printf("wii_sec_sz    = %d\n", wbfs->wii_sec_sz);
+  printf("wii_sec_sz_s  = %d\n", wbfs->wii_sec_sz_s);
+  printf("n_wii_sec     = %d\n", wbfs->n_wii_sec);
+  printf("TOTAL         = %lld\n", (u64) wbfs->n_wii_sec * wbfs->wii_sec_sz);
+
+  printf("----------------------------\n");
+  printf("wbfs_sec_sz   = %d\n", wbfs->wbfs_sec_sz);
+  printf("wbfs_sec_sz_s = %d\n", wbfs->wbfs_sec_sz_s);
+  printf("n_wbfs_sec    = %d\n", wbfs->n_wbfs_sec);
+  printf("TOTAL         = %lld\n", (u64) wbfs->n_wbfs_sec * wbfs->wbfs_sec_sz);
+
+  printf("----------------------------\n");
+  printf("disc_info_sz  = %d\n", wbfs->disc_info_sz);
+  printf("max_disc      = %d\n", wbfs->max_disc);
+  
+}
+
 static int write_wii_sector_file(void *_fp, u32 lba, u32 count, void *iobuf)
 {
   FILE *fp = _fp;

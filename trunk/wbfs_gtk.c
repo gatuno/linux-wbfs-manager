@@ -50,6 +50,23 @@ GtkResponseType show_dialog_message(const char *title, const char *msg, GtkMessa
   return resp;
 }
 
+static void convert_discname_to_filename(char *filename, const char *discname, int max_len)
+{
+  int i, c;
+
+  for (i = 0; i+1 < max_len && discname[i] != '\0'; i++) {
+    c = discname[i];
+    if ((c >= 'A' && c <= 'Z')
+	|| (c >= 'a' && c <= 'z')
+	|| (c >= '0' && c <= '9')
+	|| c == '-' || c == '.')
+      filename[i] = c;
+    else
+      filename[i] = '_';
+  }
+  filename[i] = '\0';
+}
+
 static int iso_extract_start(void *p, progress_updater update)
 {
   char **data = (char **) p;
@@ -217,6 +234,8 @@ static void reload_device(void)
     show_error("Error", "Can't open device '%s'.", app_state.dev[app_state.cur_dev]);
     return;
   }
+
+  //dump_wbfs_info(app_state.wbfs);
   
   update_iso_list();
 }
@@ -493,25 +512,32 @@ void iso_extract_clicked_cb(GtkButton *b, gpointer user_data)
   GtkTreeModel *model;
   GtkTreeIter iter;
 
+  if (app_state.wbfs == NULL)
+    return;
+
   widget = glade_xml_get_widget(glade_xml, "iso_list");
   iso_list = GTK_TREE_VIEW(widget);
   sel = gtk_tree_view_get_selection(iso_list);
   if (gtk_tree_selection_get_selected(sel, &model, &iter)) {
     char *code, *name;
+    char iso_file[256];
 
     gtk_tree_model_get(model, &iter, 0, &code, 1, &name, -1);
-    
-    if (show_confirmation("Extract ISO", "Extract ISO from\n\n%s\n\nto\n\n%s.iso", name, name)) {
-      char iso_file_name[PATH_MAX];
+    convert_discname_to_filename(iso_file, name, sizeof(iso_file)-4);
+    strcat(iso_file, ".iso");
+
+    if (show_confirmation("Extract ISO", "Extract ISO from\n\n%s\n\nto\n\n%s", name, iso_file)) {
+      char iso_file_path[PATH_MAX];
       char msg[256];
       char *p[2];
 
-      snprintf(iso_file_name, sizeof(iso_file_name), "%s/%s.iso", cur_directory, name);
+      snprintf(iso_file_path, sizeof(iso_file_path), "%s/%s", cur_directory, iso_file);
       p[0] = code;
-      p[1] = iso_file_name;
+      p[1] = iso_file_path;
 
-      snprintf(msg, sizeof(msg), "Extracting ISO to\n%s.iso\n", name);
+      snprintf(msg, sizeof(msg), "Extracting ISO to\n%s\n", iso_file);
       show_progress_dialog("Extracting ISO", msg, iso_extract_start, p, iso_extract_update, &cancel_wbfs_op);
+      update_fs_list();
     }
     
     g_free(code);
