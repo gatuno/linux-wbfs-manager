@@ -91,6 +91,30 @@ static void iso_extract_update(int cur, int max)
   gtk_progress_bar_set_text(progress_bar, txt);
 }
 
+static int iso_add_start(void *p, progress_updater update)
+{
+  char *filename = (char *) p;
+
+  return add_iso(filename, update);
+}
+
+static void iso_add_update(int cur, int max)
+{
+  GtkWidget *widget;
+  GtkProgressBar *progress_bar;
+  double fraction;
+  char txt[32];
+
+  widget = glade_xml_get_widget(glade_xml, "progress_bar");
+  progress_bar = GTK_PROGRESS_BAR(widget);
+
+  fraction = (double) cur / (double) max;
+  snprintf(txt, sizeof(txt), "%d%%", (int) (fraction * 100));
+
+  gtk_progress_bar_set_fraction(progress_bar, fraction);
+  gtk_progress_bar_set_text(progress_bar, txt);
+}
+
 /**
  * Update the filesystem directory list.
  */
@@ -193,6 +217,23 @@ static void update_iso_list(void)
 			 -1);
     }
   wbfs_iofree(buf);
+}
+
+/**
+ * Add an ISO file to the WBFS partition.
+ *
+ * TODO: check if there's enough space in the partition.
+ */
+static void add_iso_file(char *filename)
+{
+  char iso_file_path[PATH_MAX];
+  char msg[256];
+  
+  snprintf(iso_file_path, sizeof(iso_file_path), "%s/%s", cur_directory, filename);
+  
+  snprintf(msg, sizeof(msg), "Adding ISO file\n%s\n", filename);
+  show_progress_dialog("Extracting ISO", msg, iso_add_start, iso_file_path, iso_add_update, &cancel_wbfs_op);
+  update_iso_list();
 }
 
 /**
@@ -385,17 +426,21 @@ void fs_list_row_activated_cb(GtkTreeView *tree_view,
   char *name;
   int is_dir;
   char full_path[PATH_MAX];
+  char filename[256];
 
   model = gtk_tree_view_get_model(tree_view);
   gtk_tree_model_get_iter(model, &iter, path);
   gtk_tree_model_get(model, &iter, 0, &is_dir, 1, &name, -1);
-
-  snprintf(full_path, sizeof(full_path), "%s/%s", cur_directory, name);
+  strncpy(filename, name, sizeof(filename)-1);
+  filename[sizeof(filename)-1] = '\0';
   g_free(name);
+
+  snprintf(full_path, sizeof(full_path), "%s/%s", cur_directory, filename);
 
   switch (is_dir) {
   case 0:
-    show_message("File Selected", "Selected '%s'.", full_path);
+    if (show_confirmation("Add ISO", "Add ISO file '%s'?", filename))
+      add_iso_file(filename);
     break;
 
   case 1:
@@ -409,6 +454,7 @@ void fs_list_row_activated_cb(GtkTreeView *tree_view,
     show_error("Error", "File '%s' has unsupported type.", full_path);
     break;
   }
+
 }
 
 void fs_go_home_clicked_cb(GtkButton *b, gpointer data)
@@ -543,6 +589,36 @@ void iso_extract_clicked_cb(GtkButton *b, gpointer user_data)
     g_free(code);
     g_free(name);
   }
+}
+
+void fs_add_iso_clicked_cb(GtkButton *b, gpointer user_data)
+{
+  GtkWidget *widget;
+  GtkTreeView *fs_list;
+  GtkTreeSelection *sel;
+  GtkTreeModel *model;
+  GtkTreeIter iter;
+  int mode;
+  char *filename;
+
+  if (app_state.wbfs == NULL)
+    return;
+
+  widget = glade_xml_get_widget(glade_xml, "fs_list");
+  fs_list = GTK_TREE_VIEW(widget);
+  sel = gtk_tree_view_get_selection(fs_list);
+  if (! gtk_tree_selection_get_selected(sel, &model, &iter))
+    return;
+  gtk_tree_model_get(model, &iter, 0, &mode, 1, &filename, -1);
+  if (mode != 0) {
+    show_message("Add ISO", "Please select an ISO file.", filename);
+    return;
+  }
+
+  if (show_confirmation("Add ISO", "Add ISO file '%s'?", filename))
+    add_iso_file(filename);
+    
+  g_free(filename);
 }
 
 int main(int argc, char *argv[])

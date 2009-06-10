@@ -57,11 +57,31 @@ static int write_wii_sector_file(void *_fp, u32 lba, u32 count, void *iobuf)
 
   off *= 0x8000;
   if (fseeko(fp, off, SEEK_SET)) {
-    show_error("Error reading ISO", "Can't seek in disc file (%llu)", off);
+    show_error("Error writing ISO", "Can't seek in disc file (%llu)", off);
     return 1;
   }
   if (fwrite(iobuf, count*0x8000, 1, fp) != 1) {
-    show_error("Error reading ISO", "Can't write disc file.");
+    show_error("Error writing ISO", "Can't write disc file.");
+    return 1;
+  }
+  return 0;
+}
+
+static int read_wii_file(void *_fp, u32 offset, u32 count, void *iobuf)
+{
+  FILE*fp =_fp;
+  u64 off = offset;
+  off<<=2;
+
+  if (cancel_wbfs_op)
+    return 1;
+
+  if (fseeko(fp, off, SEEK_SET)) {
+    show_error("Error reading ISO", "Can't seek in disc file.");
+    return 1;
+  }
+  if (fread(iobuf, count, 1, fp) != 1){
+    show_error("Error reading ISO", "Can't reading disc file.");
     return 1;
   }
   return 0;
@@ -102,4 +122,42 @@ int extract_iso(char *code, char *filename, void (*update)(int, int))
   fclose(f);
   wbfs_close_disc(disc);
   return 0;
+}
+
+int add_iso(char *filename, void (*update)(int, int))
+{
+  FILE *f;
+  wbfs_disc_t *disc;
+  char code[7];
+  int ret;
+
+  cancel_wbfs_op = 0;
+  if (! update)
+    update = progress_update;
+
+  /* open ISO */
+  f = fopen(filename, "r");
+  if (f == NULL) {
+    show_error("Error Adding ISO", "Can't open ISO file '%s'", filename);
+    return 1;
+  }
+  if (fread(code, 1, 6, f) != 6) {
+    show_error("Error Adding ISO", "Can't read disc ID from file '%s'.", filename);
+    fclose(f);
+    return 1;
+  }
+
+  /* open disc */
+  disc = wbfs_open_disc(app_state.wbfs, (u8 *) code);
+  if (disc != NULL) {
+    wbfs_close_disc(disc);
+    show_error("Error Adding ISO", "The game is already in the WBFS partition.");
+    fclose(f);
+    return 1;
+  }
+
+  ret = wbfs_add_disc(app_state.wbfs, read_wii_file, (void *) f, update, ONLY_GAME_PARTITION, 0, NULL);
+  
+  fclose(f);
+  return ret;
 }

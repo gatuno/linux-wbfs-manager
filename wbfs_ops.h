@@ -13,5 +13,6 @@ extern int cancel_wbfs_op;
 
 void dump_wbfs_info(void);
 int extract_iso(char *code, char *filename, void (*progress_update)(int, int));
+int add_iso(char *filename, void (*update)(int, int));
 
 #endif /* WBFS_OPS_H_FILE */
