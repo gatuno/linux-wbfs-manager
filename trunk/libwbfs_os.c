@@ -12,6 +12,7 @@
 #include <stdarg.h>
 
 #include "libwbfs_os.h"
+#include "message.h"
 
 void wbfs_fatal(const char *s, ...)
 {
@@ -21,6 +22,8 @@ void wbfs_fatal(const char *s, ...)
   va_start(args, s);
   vsnprintf(msg, sizeof(msg), s, args);
   va_end(args);
+
+  show_error("Fatal Error", "Fatal error from libwbfs:\n%s", msg);
 }
 
 void wbfs_error(const char *s, ...)
@@ -32,7 +35,7 @@ void wbfs_error(const char *s, ...)
   vsnprintf(msg, sizeof(msg), s, args);
   va_end(args);
 
-  printf("ERROR: %s\n", msg);
+  show_error("Error", "Error from libwbfs:\n%s", msg);
 }
 
 void wbfs_warning(const char *s, ...)
@@ -44,5 +47,5 @@ void wbfs_warning(const char *s, ...)
   vsnprintf(msg, sizeof(msg), s, args);
   va_end(args);
 
-  printf("WARNING: %s\n", msg);
+  show_message("Warning", "Warning from libwbfs:\n%s", msg);
 }

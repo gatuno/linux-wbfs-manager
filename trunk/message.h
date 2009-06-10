@@ -1,0 +1,16 @@
+/* message.h
+ *
+ * Copyright (C) 2009 Ricardo Massaro
+ *
+ * Licensed under the terms of the GNU GPL, version 2
+ * http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
+ */
+
+#ifndef MESSAGE_H_FILE
+#define MESSAGE_H_FILE
+
+int show_confirmation(const char *title, const char *s, ...);
+void show_message(const char *title, const char *s, ...);
+void show_error(const char *title, const char *s, ...);
+
+#endif /* MESSAGE_H_FILE */

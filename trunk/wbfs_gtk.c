@@ -15,56 +15,63 @@
 #include <gtk/gtk.h>
 #include <glade/glade.h>
 
-#include "libwbfs.h"
+#include "wbfs_gtk.h"
+#include "wbfs_ops.h"
 #include "app_state.h"
 #include "list_dir.h"
+#include "message.h"
+#include "progress.h"
+
+#include "libwbfs.h"
 
 #define GLADE_XML_FILE "wbfs_gui.glade"
 
-static GladeXML *glade_xml;
+GladeXML *glade_xml;
 static char cur_directory[PATH_MAX];
 static DIR_ITEM cur_dir_list[1024];
 
-void show_dialog_message(const char *title, const char *msg, int is_error)
+GtkResponseType show_dialog_message(const char *title, const char *msg, GtkMessageType type, GtkButtonsType buttons)
 {
   GtkWidget *main_window;
   GtkWidget *dlg;
+  GtkResponseType resp;
 
   main_window = glade_xml_get_widget(glade_xml, "main_window");
   dlg = gtk_message_dialog_new(GTK_WINDOW(main_window),
 			       GTK_DIALOG_MODAL,
-			       (is_error) ? GTK_MESSAGE_ERROR : GTK_MESSAGE_INFO,
-			       GTK_BUTTONS_OK,
+			       type,
+			       buttons,
 			       "%s",
 			       msg);
   if (title != NULL)
     gtk_window_set_title(GTK_WINDOW(dlg), title);
-  gtk_dialog_run(GTK_DIALOG(dlg));
+  resp = gtk_dialog_run(GTK_DIALOG(dlg));
   gtk_widget_destroy(dlg);
+  return resp;
 }
 
-void show_message(const char *title, const char *s, ...)
+static int iso_extract_start(void *p, progress_updater update)
 {
-  va_list args;
-  char msg[256];
+  char **data = (char **) p;
 
-  va_start(args, s);
-  vsnprintf(msg, sizeof(msg), s, args);
-  va_end(args);
-
-  show_dialog_message(title, msg, 0);
+  return extract_iso(data[0], data[1], update);
 }
 
-void show_error(const char *title, const char *s, ...)
+static void iso_extract_update(int cur, int max)
 {
-  va_list args;
-  char msg[256];
+  GtkWidget *widget;
+  GtkProgressBar *progress_bar;
+  double fraction;
+  char txt[32];
 
-  va_start(args, s);
-  vsnprintf(msg, sizeof(msg), s, args);
-  va_end(args);
+  widget = glade_xml_get_widget(glade_xml, "progress_bar");
+  progress_bar = GTK_PROGRESS_BAR(widget);
 
-  show_dialog_message(title, msg, 1);
+  fraction = (double) cur / (double) max;
+  snprintf(txt, sizeof(txt), "%d%%", (int) (fraction * 100));
+
+  gtk_progress_bar_set_fraction(progress_bar, fraction);
+  gtk_progress_bar_set_text(progress_bar, txt);
 }
 
 /**
@@ -129,21 +136,21 @@ static void update_fs_list(void)
 }
 
 /**
- * Update the device ROM list
+ * Update the device ISO list
  */
-static void update_rom_list(void)
+static void update_iso_list(void)
 {
   GtkListStore *store;
   GtkTreeIter iter;
   GtkWidget *widget;
-  GtkTreeView *rom_list;
+  GtkTreeView *iso_list;
   u8 *buf;
   u32 size;
   int i, n;
 
-  widget = glade_xml_get_widget(glade_xml, "rom_list");
-  rom_list = GTK_TREE_VIEW(widget);
-  store = GTK_LIST_STORE(gtk_tree_view_get_model(rom_list));
+  widget = glade_xml_get_widget(glade_xml, "iso_list");
+  iso_list = GTK_TREE_VIEW(widget);
+  store = GTK_LIST_STORE(gtk_tree_view_get_model(iso_list));
 
   gtk_list_store_clear(store);
 
@@ -154,10 +161,10 @@ static void update_rom_list(void)
   buf = wbfs_ioalloc(0x100);
   for (i = 0; i < n; i++)
     if (wbfs_get_disc_info(app_state.wbfs, i, buf, 0x100, &size) == 0) {
-      u8 code_txt[6], size_txt[20], *name_txt;
+      u8 code_txt[7], size_txt[20], *name_txt;
 
-      memcpy(code_txt, buf, 5);
-      code_txt[5] = '\0';
+      memcpy(code_txt, buf, 6);
+      code_txt[6] = '\0';
       snprintf((char *)size_txt, sizeof(size_txt), "%.2f GB", (size * 4ULL) / 1024.0 / 1024.0 / 1024.0);
       name_txt = buf + 0x20;
 
@@ -200,18 +207,18 @@ static void reload_device(void)
   if (app_state.wbfs != NULL)
     wbfs_close(app_state.wbfs);
   app_state.wbfs = NULL;
-  update_rom_list();
+  update_iso_list();
   if (app_state.cur_dev < 0)
     return;
 
   /* open new device */
   app_state.wbfs = wbfs_try_open_partition(app_state.dev[app_state.cur_dev], 0);
   if (app_state.wbfs == NULL) {
-    show_error("ERROR", "Can't open device '%s'.", app_state.dev[app_state.cur_dev]);
+    show_error("Error", "Can't open device '%s'.", app_state.dev[app_state.cur_dev]);
     return;
   }
   
-  update_rom_list();
+  update_iso_list();
 }
 
 /**
@@ -296,7 +303,7 @@ static void init_widgets(void)
 {
   GtkCellRenderer *renderer;
   GtkListStore *list_store;
-  GtkTreeView *rom_list;
+  GtkTreeView *iso_list;
   GtkTreeView *fs_list;
   GtkComboBox *dev_list;
   GtkEntry *fs_cur_dir;
@@ -310,19 +317,19 @@ static void init_widgets(void)
   gtk_combo_box_set_model(dev_list, GTK_TREE_MODEL(list_store));
   g_object_unref(list_store);
 
-  /* setup rom list store and model */
-  widget = glade_xml_get_widget(glade_xml, "rom_list");
-  rom_list = GTK_TREE_VIEW(widget);
+  /* setup ISO list store and model */
+  widget = glade_xml_get_widget(glade_xml, "iso_list");
+  iso_list = GTK_TREE_VIEW(widget);
   renderer = gtk_cell_renderer_text_new();
-  gtk_tree_view_insert_column_with_attributes(rom_list, -1, "Code", renderer, "text", 0, NULL);
+  gtk_tree_view_insert_column_with_attributes(iso_list, -1, "Code", renderer, "text", 0, NULL);
   renderer = gtk_cell_renderer_text_new();
-  gtk_tree_view_insert_column_with_attributes(rom_list, -1, "Name", renderer, "text", 1, NULL);
+  gtk_tree_view_insert_column_with_attributes(iso_list, -1, "Name", renderer, "text", 1, NULL);
   renderer = gtk_cell_renderer_text_new();
-  gtk_tree_view_insert_column_with_attributes(rom_list, -1, "Size", renderer, "text", 2, NULL);
+  gtk_tree_view_insert_column_with_attributes(iso_list, -1, "Size", renderer, "text", 2, NULL);
   list_store = gtk_list_store_new(3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
-  gtk_tree_view_set_model(rom_list, GTK_TREE_MODEL(list_store));
+  gtk_tree_view_set_model(iso_list, GTK_TREE_MODEL(list_store));
   g_object_unref(list_store);
-  col = gtk_tree_view_get_column(rom_list, 1);
+  col = gtk_tree_view_get_column(iso_list, 1);
   gtk_tree_view_column_set_expand(col, 1);
 
   /* setup fs list store and model */
@@ -385,7 +392,7 @@ void fs_list_row_activated_cb(GtkTreeView *tree_view,
   }
 }
 
-void fs_go_home_clicked_cb(GtkWidget *w, gpointer data)
+void fs_go_home_clicked_cb(GtkButton *b, gpointer data)
 {
   char *login;
   struct passwd *pw;
@@ -398,7 +405,7 @@ void fs_go_home_clicked_cb(GtkWidget *w, gpointer data)
     update_fs_list();
 }
 
-void fs_set_dir_clicked_cb(GtkWidget *w, gpointer data)
+void fs_set_dir_clicked_cb(GtkButton *b, gpointer data)
 {
   change_cur_dir();
 }
@@ -408,7 +415,7 @@ void fs_cur_dir_activate_cb(GtkEntry *e, gpointer data)
   change_cur_dir();
 }
 
-void reload_device_clicked_cb(GtkWidget *w, gpointer data)
+void reload_device_clicked_cb(GtkButton *b, gpointer data)
 {
   GtkListStore *store;
   GtkTreeIter iter;
@@ -442,7 +449,7 @@ void reload_device_clicked_cb(GtkWidget *w, gpointer data)
     }
 }
 
-void reload_device_list_clicked_cb(GtkWidget *w, gpointer data)
+void reload_device_list_clicked_cb(GtkButton *b, gpointer data)
 {
   reload_device_list();
 }
@@ -464,12 +471,9 @@ void menu_quit_activate_cb(GtkWidget *w, gpointer data)
 
 void menu_about_activate_cb(GtkWidget *w, gpointer data)
 {
-  GtkWidget *main_window;
   GtkWidget *about_dialog;
 
-  main_window = glade_xml_get_widget(glade_xml, "main_window");
   about_dialog = glade_xml_get_widget(glade_xml, "about_dialog");
-  gtk_window_set_transient_for(GTK_WINDOW(about_dialog), GTK_WINDOW(main_window));
   gtk_dialog_run(GTK_DIALOG(about_dialog));
 }
 
@@ -479,6 +483,40 @@ void about_dialog_response_cb(GtkWidget *w, gpointer data)
 
   about_dialog = glade_xml_get_widget(glade_xml, "about_dialog");
   gtk_widget_hide(about_dialog);
+}
+
+void iso_extract_clicked_cb(GtkButton *b, gpointer user_data)
+{
+  GtkWidget *widget;
+  GtkTreeView *iso_list;
+  GtkTreeSelection *sel;
+  GtkTreeModel *model;
+  GtkTreeIter iter;
+
+  widget = glade_xml_get_widget(glade_xml, "iso_list");
+  iso_list = GTK_TREE_VIEW(widget);
+  sel = gtk_tree_view_get_selection(iso_list);
+  if (gtk_tree_selection_get_selected(sel, &model, &iter)) {
+    char *code, *name;
+
+    gtk_tree_model_get(model, &iter, 0, &code, 1, &name, -1);
+    
+    if (show_confirmation("Extract ISO", "Extract ISO from\n\n%s\n\nto\n\n%s.iso", name, name)) {
+      char iso_file_name[PATH_MAX];
+      char msg[256];
+      char *p[2];
+
+      snprintf(iso_file_name, sizeof(iso_file_name), "%s/%s.iso", cur_directory, name);
+      p[0] = code;
+      p[1] = iso_file_name;
+
+      snprintf(msg, sizeof(msg), "Extracting ISO to\n%s.iso\n", name);
+      show_progress_dialog("Extracting ISO", msg, iso_extract_start, p, iso_extract_update, &cancel_wbfs_op);
+    }
+    
+    g_free(code);
+    g_free(name);
+  }
 }
 
 int main(int argc, char *argv[])
