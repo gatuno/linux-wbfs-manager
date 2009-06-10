@@ -621,6 +621,36 @@ void fs_add_iso_clicked_cb(GtkButton *b, gpointer user_data)
   g_free(filename);
 }
 
+
+gboolean iso_list_button_press_event_cb(GtkWidget *w,
+                                        GdkEventButton *event,
+                                        gpointer user_data)
+{
+  if (app_state.wbfs == NULL)
+    return FALSE;
+
+  if (event->button == 3) {
+    GtkWidget *widget;
+    GtkTreeView *rom_list;
+    GtkTreeSelection *sel;
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+    char *code, *name;
+
+    widget = glade_xml_get_widget(glade_xml, "rom_list");
+    rom_list = GTK_TREE_VIEW(widget);
+    sel = gtk_tree_view_get_selection(rom_list);
+    if (gtk_tree_selection_get_selected(sel, &model, &iter)) {
+      gtk_tree_model_get(model, &iter, 0, &code, 1, &name, -1);
+      printf("right button clicked on item '%s' (%s)\n", name, code);
+      g_free(code);
+      g_free(name);
+    }
+    return TRUE;
+  }
+  return FALSE;
+}
+
 int main(int argc, char *argv[])
 {
   GtkWidget *main_window;
