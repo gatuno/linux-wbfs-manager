@@ -16,6 +16,22 @@
 #include "message.h"
 #include "wbfs_gtk.h"
 
+int show_warning_yes_no(const char *title, const char *s, ...)
+{
+  va_list args;
+  char msg[256];
+  GtkResponseType resp;
+
+  va_start(args, s);
+  vsnprintf(msg, sizeof(msg), s, args);
+  va_end(args);
+
+  resp = show_dialog_message(title, msg, GTK_MESSAGE_WARNING, GTK_BUTTONS_YES_NO);
+  if (resp == GTK_RESPONSE_YES)
+    return 1;
+  return 0;
+}
+
 int show_confirmation(const char *title, const char *s, ...)
 {
   va_list args;
