@@ -10,7 +10,7 @@
 #define CONFIG_H_FILE
 
 #ifndef PATH_MAX
-#warning PATH_MAX not defined
+/* #warning PATH_MAX not defined */
 #define PATH_MAX 1024
 #endif
 

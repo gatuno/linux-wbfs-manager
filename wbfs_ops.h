@@ -16,5 +16,6 @@ int op_init_partition(char *device);
 int op_extract_iso(char *code, char *filename, void (*progress_update)(int, int));
 int op_add_iso(char *filename, void (*update)(int, int));
 int op_remove_disc(char *code);
+int op_rename_disc(char *code, char *new_name);
 
 #endif /* WBFS_OPS_H_FILE */

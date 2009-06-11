@@ -9,6 +9,8 @@
 #ifndef MESSAGE_H_FILE
 #define MESSAGE_H_FILE
 
+int show_text_input(const char *title, char *input, int input_size, const char *s, ...);
+
 int show_warning_yes_no(const char *title, const char *s, ...);
 int show_confirmation(const char *title, const char *s, ...);
 void show_message(const char *title, const char *s, ...);

@@ -51,6 +51,68 @@ static int get_device_id(const char *device)
   return -1;
 }
 
+static int get_selected_device(char **device)
+{
+  GtkListStore *store;
+  GtkTreeIter iter;
+  GtkWidget *widget;
+  GtkComboBox *dev_list;
+
+  widget = get_widget("device_list");
+  dev_list = GTK_COMBO_BOX(widget);
+  store = GTK_LIST_STORE(gtk_combo_box_get_model(dev_list));
+  if (gtk_combo_box_get_active_iter(dev_list, &iter)) {
+    gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, 0, device, -1);
+    return 1;
+  }
+
+  return 0;
+}
+
+static int get_selected_file(int *mode, char **name)
+{
+  GtkWidget *widget;
+  GtkTreeView *fs_list;
+  GtkTreeSelection *sel;
+  GtkTreeModel *model;
+  GtkTreeIter iter;
+
+  if (app_state.wbfs == NULL)
+    return 0;
+
+  widget = get_widget("fs_list");
+  fs_list = GTK_TREE_VIEW(widget);
+  sel = gtk_tree_view_get_selection(fs_list);
+  if (gtk_tree_selection_get_selected(sel, &model, &iter)) {
+    if (name != NULL)
+      gtk_tree_model_get(model, &iter, 0, mode, 1, name, -1);
+    return 1;
+  }
+  return 0;
+}
+
+static int get_selected_disc(char **code, char **name)
+{
+  GtkWidget *widget;
+  GtkTreeView *iso_list;
+  GtkTreeSelection *sel;
+  GtkTreeModel *model;
+  GtkTreeIter iter;
+
+  if (app_state.wbfs == NULL)
+    return 0;
+
+  widget = get_widget("iso_list");
+  iso_list = GTK_TREE_VIEW(widget);
+  sel = gtk_tree_view_get_selection(iso_list);
+  if (gtk_tree_selection_get_selected(sel, &model, &iter)) {
+    if (code != NULL && name != NULL)
+      gtk_tree_model_get(model, &iter, 0, code, 1, name, -1);
+    return 1;
+  }
+  return 0;
+}
+
 static void set_label_double(const char *widget_name, const char *format, double n)
 {
   GtkWidget *widget;
@@ -374,6 +436,9 @@ static void reload_device_list(void)
   gtk_combo_box_set_active(dev_list, new_sel_index);
 }
 
+/**
+ * Choose icon for file depending on type (file, directory, etc.)
+ */
 static void fs_list_icon_data_func(GtkTreeViewColumn *tree_column,
 				   GtkCellRenderer *cell,
 				   GtkTreeModel *tree_model,
@@ -406,6 +471,9 @@ static void fs_list_icon_data_func(GtkTreeViewColumn *tree_column,
   g_object_set_property(G_OBJECT(cell), "stock-id", &val);
 }
 
+/**
+ * Initialize widgets before main window is displayed.
+ */
 static void init_widgets(void)
 {
   GtkCellRenderer *renderer;
@@ -472,23 +540,21 @@ void fs_list_row_activated_cb(GtkTreeView *tree_view,
                               GtkTreeViewColumn *column,
                               gpointer user_data)
 {
-  GtkTreeModel *model;
-  GtkTreeIter iter;
-  char *name;
-  int is_dir;
-  char full_path[PATH_MAX];
   char filename[256];
+  char full_path[PATH_MAX];
+  char *name;
+  int mode;
 
-  model = gtk_tree_view_get_model(tree_view);
-  gtk_tree_model_get_iter(model, &iter, path);
-  gtk_tree_model_get(model, &iter, 0, &is_dir, 1, &name, -1);
+  if (! get_selected_file(&mode, &name))
+    return;
+
   strncpy(filename, name, sizeof(filename)-1);
   filename[sizeof(filename)-1] = '\0';
   g_free(name);
 
   snprintf(full_path, sizeof(full_path), "%s/%s", cur_directory, filename);
 
-  switch (is_dir) {
+  switch (mode) {
   case 0:
     if (app_state.wbfs == NULL)
       show_message("Add ISO", "You must first load a WBFS device.");
@@ -535,27 +601,14 @@ void fs_cur_dir_activate_cb(GtkEntry *e, gpointer data)
 
 void reload_device_clicked_cb(GtkButton *b, gpointer data)
 {
-  GtkListStore *store;
-  GtkTreeIter iter;
-  GtkWidget *widget;
-  GtkComboBox *dev_list;
-  char *cur_sel;
+  char *device;
 
-  /* get selected device */
-  widget = get_widget("device_list");
-  dev_list = GTK_COMBO_BOX(widget);
-  store = GTK_LIST_STORE(gtk_combo_box_get_model(dev_list));
-  cur_sel = NULL;
-  if (gtk_combo_box_get_active_iter(dev_list, &iter))
-    gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, 0, &cur_sel, -1);
-  if (cur_sel == NULL)
-    return;
+  get_selected_device(&device);
 
-  /* load device */
-  app_state.cur_dev = get_device_id(cur_sel);
+  app_state.cur_dev = get_device_id(device);
   load_device();
 
-  g_free(cur_sel);
+  g_free(device);
 }
 
 void reload_device_list_clicked_cb(GtkButton *b, gpointer data)
@@ -581,10 +634,6 @@ void main_window_delete_event_cb(GtkWidget *w, gpointer data)
 
 void menu_init_wbfs_partition_activate_cb(GtkWidget *c, gpointer data)
 {
-  GtkListStore *store;
-  GtkTreeIter iter;
-  GtkWidget *widget;
-  GtkComboBox *dev_list;
   char *cur_sel;
   char mount_point[256];
   char device[256];
@@ -592,13 +641,7 @@ void menu_init_wbfs_partition_activate_cb(GtkWidget *c, gpointer data)
   int ret;
 
   /* get selected device */
-  widget = get_widget("device_list");
-  dev_list = GTK_COMBO_BOX(widget);
-  store = GTK_LIST_STORE(gtk_combo_box_get_model(dev_list));
-  cur_sel = NULL;
-  if (gtk_combo_box_get_active_iter(dev_list, &iter))
-    gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, 0, &cur_sel, -1);
-  if (cur_sel == NULL)
+  if (! get_selected_device(&cur_sel))
     return;
   strncpy(device, cur_sel, sizeof(device));
   device[sizeof(device)-1] = '\0';
@@ -632,14 +675,13 @@ void menu_init_wbfs_partition_activate_cb(GtkWidget *c, gpointer data)
       return;
   }
   
-  op_init_partition(device);
+  if (op_init_partition(device) != 0)
+    show_error("Error", "Error initializing partition.");
+  else
+    show_message("Initialize WBFS Partition", "Partition initialized successfully.");
+
   app_state.cur_dev = get_device_id(device);
   load_device();
-}
-
-void menu_quit_activate_cb(GtkWidget *w, gpointer data)
-{
-  gtk_main_quit();
 }
 
 void menu_about_activate_cb(GtkWidget *w, gpointer data)
@@ -660,23 +702,11 @@ void about_dialog_response_cb(GtkWidget *w, gpointer data)
 
 void iso_extract_clicked_cb(GtkButton *b, gpointer user_data)
 {
-  GtkWidget *widget;
-  GtkTreeView *iso_list;
-  GtkTreeSelection *sel;
-  GtkTreeModel *model;
-  GtkTreeIter iter;
+  char *code, *name;
 
-  if (app_state.wbfs == NULL)
-    return;
-
-  widget = get_widget("iso_list");
-  iso_list = GTK_TREE_VIEW(widget);
-  sel = gtk_tree_view_get_selection(iso_list);
-  if (gtk_tree_selection_get_selected(sel, &model, &iter)) {
-    char *code, *name;
+  if (get_selected_disc(&code, &name)) {
     char iso_file[256];
 
-    gtk_tree_model_get(model, &iter, 0, &code, 1, &name, -1);
     convert_discname_to_filename(iso_file, name, sizeof(iso_file)-4);
     strcat(iso_file, ".iso");
 
@@ -701,11 +731,6 @@ void iso_extract_clicked_cb(GtkButton *b, gpointer user_data)
 
 void fs_add_iso_clicked_cb(GtkButton *b, gpointer user_data)
 {
-  GtkWidget *widget;
-  GtkTreeView *fs_list;
-  GtkTreeSelection *sel;
-  GtkTreeModel *model;
-  GtkTreeIter iter;
   int mode;
   char *filename;
 
@@ -714,47 +739,41 @@ void fs_add_iso_clicked_cb(GtkButton *b, gpointer user_data)
     return;
   }
 
-  widget = get_widget("fs_list");
-  fs_list = GTK_TREE_VIEW(widget);
-  sel = gtk_tree_view_get_selection(fs_list);
-  if (! gtk_tree_selection_get_selected(sel, &model, &iter))
-    return;
-  gtk_tree_model_get(model, &iter, 0, &mode, 1, &filename, -1);
-  if (mode != 0) {
-    show_message("Add ISO", "Please select an ISO file.", filename);
-    return;
-  }
-
-  if (show_confirmation("Add ISO", "Add ISO file '%s'?", filename))
-    add_iso_file(filename);
+  if (get_selected_file(&mode, &filename)) {
+    if (mode != 0)
+      show_message("Add ISO", "Please select an ISO file.", filename);
+    else if (show_confirmation("Add ISO", "Add ISO file '%s'?", filename))
+      add_iso_file(filename);
     
-  g_free(filename);
+    g_free(filename);
+  }
 }
 
 void iso_remove_clicked_cb(GtkButton *b, gpointer user_data)
 {
-  GtkWidget *widget;
-  GtkTreeView *iso_list;
-  GtkTreeSelection *sel;
-  GtkTreeModel *model;
-  GtkTreeIter iter;
+  char *code, *name;
 
-  if (app_state.wbfs == NULL)
-    return;
-
-  widget = get_widget("iso_list");
-  iso_list = GTK_TREE_VIEW(widget);
-  sel = gtk_tree_view_get_selection(iso_list);
-  if (gtk_tree_selection_get_selected(sel, &model, &iter)) {
-    char *code, *name;
-
-    gtk_tree_model_get(model, &iter, 0, &code, 1, &name, -1);
+  if (get_selected_disc(&code, &name)) {
     if (show_confirmation("Remove Disc", "Remove disc '%s' (%s)?", name, code))
       op_remove_disc(code);
+    update_iso_list();
+
     g_free(code);
     g_free(name);
+  }
+}
 
+void menu_iso_remove_activate_cb(GtkWidget *w, gpointer data)
+{
+  char *code, *name;
+
+  if (get_selected_disc(&code, &name)) {
+    if (show_confirmation("Remove Disc", "Remove disc '%s' (%s)?", name, code))
+      op_remove_disc(code);
     update_iso_list();
+
+    g_free(code);
+    g_free(name);
   }
 }
 
@@ -762,6 +781,27 @@ void menu_ignore_mounted_devices_toggled_cb(GtkCheckMenuItem *c, gpointer data)
 {
   app_state.ignore_mounted_devices = gtk_check_menu_item_get_active(c) ? 1 : 0;
   reload_device_list();
+}
+
+void menu_iso_rename_activate_cb(GtkWidget *w, gpointer data)
+{
+  char *code, *name;
+
+  if (get_selected_disc(&code, &name)) {
+    char new_name[256];
+
+    strncpy(new_name, name, sizeof(new_name));
+    new_name[sizeof(new_name)-1] = '\0';
+
+    if (show_text_input("Rename Disc", new_name, sizeof(new_name), "Rename disc with id '%s' to:", code)) {
+      op_rename_disc(code, new_name);
+    }
+
+    g_free(code);
+    g_free(name);
+
+    update_iso_list();
+  }
 }
 
 gboolean iso_list_button_release_event_cb(GtkWidget *w,
@@ -772,25 +812,21 @@ gboolean iso_list_button_release_event_cb(GtkWidget *w,
     return FALSE;
 
   if (event->button == 3) {
-    GtkWidget *widget;
-    GtkTreeView *rom_list;
-    GtkTreeSelection *sel;
-    GtkTreeModel *model;
-    GtkTreeIter iter;
-    char *code, *name;
+    if (get_selected_disc(NULL, NULL)) {
+      GtkWidget *widget;
 
-    widget = get_widget("iso_list");
-    rom_list = GTK_TREE_VIEW(widget);
-    sel = gtk_tree_view_get_selection(rom_list);
-    if (gtk_tree_selection_get_selected(sel, &model, &iter)) {
-      gtk_tree_model_get(model, &iter, 0, &code, 1, &name, -1);
-      //printf("right button clicked on item '%s' (%s)\n", name, code);
-      g_free(code);
-      g_free(name);
+      widget = get_widget("menu_iso_context");
+      gtk_menu_popup(GTK_MENU(widget), NULL, NULL, NULL, NULL,
+		     event->button, event->time);
     }
     return TRUE;
   }
   return FALSE;
+}
+
+void menu_quit_activate_cb(GtkWidget *w, gpointer data)
+{
+  gtk_main_quit();
 }
 
 int main(int argc, char *argv[])

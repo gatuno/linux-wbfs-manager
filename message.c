@@ -124,3 +124,42 @@ void show_error(const char *title, const char *s, ...)
   else
     show_dialog_message(title, msg, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK);
 }
+
+int show_text_input(const char *title, char *input, int input_size, const char *s, ...)
+{
+  va_list args;
+  char msg[256];
+  GtkWidget *input_dialog, *widget;
+  GtkResponseType resp;
+
+  va_start(args, s);
+  vsnprintf(msg, sizeof(msg), s, args);
+  va_end(args);
+
+  widget = get_widget("input_dialog_message");
+  gtk_label_set_text(GTK_LABEL(widget), msg);
+
+  widget = get_widget("input_dialog_entry");
+  gtk_entry_set_text(GTK_ENTRY(widget), input);
+
+  input_dialog = get_widget("input_dialog");
+  gtk_window_set_title(GTK_WINDOW(input_dialog), title);
+  resp = gtk_dialog_run(GTK_DIALOG(input_dialog));
+  if (resp == 1) {
+    const char *p;
+
+    widget = get_widget("input_dialog_entry");
+    p = gtk_entry_get_text(GTK_ENTRY(widget));
+    strncpy(input, p, input_size);
+    return 1;
+  }
+  return 0;
+}
+
+void input_dialog_response_cb(GtkDialog *d, gint response_id, gpointer data)
+{
+  GtkWidget *widget;
+
+  widget = get_widget("input_dialog");
+  gtk_widget_hide(widget);
+}
