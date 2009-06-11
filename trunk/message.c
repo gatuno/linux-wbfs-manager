@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdarg.h>
 
 #include <gtk/gtk.h>
@@ -15,6 +16,52 @@
 
 #include "message.h"
 #include "wbfs_gtk.h"
+
+static int capturing_msgs = 0;
+static char captured_msgs[1024];
+static int captured_msgs_size;
+
+static GtkResponseType show_dialog_message(const char *title, const char *msg, GtkMessageType type, GtkButtonsType buttons)
+{
+  GtkWidget *main_window;
+  GtkWidget *dlg;
+  GtkResponseType resp;
+
+  main_window = get_widget("main_window");
+  dlg = gtk_message_dialog_new(GTK_WINDOW(main_window),
+			       GTK_DIALOG_MODAL,
+			       type,
+			       buttons,
+			       "%s",
+			       msg);
+  if (title != NULL)
+    gtk_window_set_title(GTK_WINDOW(dlg), title);
+  resp = gtk_dialog_run(GTK_DIALOG(dlg));
+  gtk_widget_destroy(dlg);
+  return resp;
+}
+
+static void capture_message(char *msg)
+{
+  strncpy(captured_msgs + captured_msgs_size,
+	  msg,
+	  sizeof(captured_msgs) - captured_msgs_size);
+  captured_msgs[sizeof(captured_msgs)-1] = '\0';
+  captured_msgs_size += strlen(captured_msgs + captured_msgs_size);
+}
+
+void start_msg_capture(void)
+{
+  captured_msgs[0] = '\0';
+  captured_msgs_size = 0;
+  capturing_msgs = 1;
+}
+
+char *end_msg_capture(void)
+{
+  capturing_msgs = 0;
+  return captured_msgs;
+}
 
 int show_warning_yes_no(const char *title, const char *s, ...)
 {
@@ -57,7 +104,10 @@ void show_message(const char *title, const char *s, ...)
   vsnprintf(msg, sizeof(msg), s, args);
   va_end(args);
 
-  show_dialog_message(title, msg, GTK_MESSAGE_INFO, GTK_BUTTONS_OK);
+  if (capturing_msgs)
+    capture_message(msg);
+  else
+    show_dialog_message(title, msg, GTK_MESSAGE_INFO, GTK_BUTTONS_OK);
 }
 
 void show_error(const char *title, const char *s, ...)
@@ -69,5 +119,8 @@ void show_error(const char *title, const char *s, ...)
   vsnprintf(msg, sizeof(msg), s, args);
   va_end(args);
 
-  show_dialog_message(title, msg, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK);
+  if (capturing_msgs)
+    capture_message(msg);
+  else
+    show_dialog_message(title, msg, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK);
 }

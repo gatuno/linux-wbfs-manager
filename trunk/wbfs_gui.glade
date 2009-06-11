@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
-<!--Generated with glade3 3.4.5 on Thu Jun 11 02:12:34 2009 -->
+<!--Generated with glade3 3.4.5 on Thu Jun 11 05:13:09 2009 -->
 <glade-interface>
   <widget class="GtkWindow" id="main_window">
     <property name="width_request">800</property>
-    <property name="height_request">500</property>
+    <property name="height_request">400</property>
     <property name="title" translatable="yes">WBFS Manager</property>
     <property name="default_width">800</property>
-    <property name="default_height">500</property>
+    <property name="default_height">400</property>
     <signal name="realize" handler="main_window_realize_cb"/>
     <signal name="delete_event" handler="main_window_delete_event_cb"/>
     <child>
@@ -218,8 +218,8 @@
                           <widget class="GtkTreeView" id="iso_list">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
-                            <property name="events">GDK_BUTTON_PRESS_MASK | GDK_STRUCTURE_MASK</property>
-                            <signal name="button_press_event" handler="iso_list_button_press_event_cb"/>
+                            <property name="events">GDK_BUTTON_RELEASE_MASK | GDK_STRUCTURE_MASK</property>
+                            <signal name="button_release_event" handler="iso_list_button_release_event_cb"/>
                           </widget>
                         </child>
                       </widget>
