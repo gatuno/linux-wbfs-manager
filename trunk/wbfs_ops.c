@@ -183,3 +183,12 @@ int op_remove_disc(char *code)
   }
   return 0;
 }
+
+int op_rename_disc(char *code, char *new_name)
+{
+  if (wbfs_ren_disc(app_state.wbfs, (u8 *) code, (u8 *) new_name)) {
+    show_error("Error Renaming Disc", "Can't find disc id '%s'", code);
+    return 1;
+  }
+  return 0;
+}
