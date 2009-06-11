@@ -60,7 +60,8 @@ int show_progress_dialog(const char *title,
 			 progress_starter starter,
 			 void *data,
 			 progress_updater updater,
-			 int *cancel_indicator)
+			 int *cancel_indicator,
+			 int enable_cancel)
 {
   GtkWidget *progress_dialog;
   GtkWidget *widget;
@@ -84,9 +85,13 @@ int show_progress_dialog(const char *title,
   gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(widget), 0.);
 
   /* show dialog */
+  widget = glade_xml_get_widget(glade_xml, "progress_button");
+  if (enable_cancel)
+    gtk_widget_show(widget);
+  else
+    gtk_widget_hide(widget);
   progress_dialog = glade_xml_get_widget(glade_xml, "progress_dialog");
   gtk_window_set_title(GTK_WINDOW(progress_dialog), title);
-  gtk_widget_show_all(progress_dialog);
   resp = gtk_dialog_run(GTK_DIALOG(progress_dialog));
   gtk_widget_hide(progress_dialog);
 

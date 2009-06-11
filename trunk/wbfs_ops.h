@@ -12,7 +12,9 @@
 extern int cancel_wbfs_op;
 
 void dump_wbfs_info(void);
-int extract_iso(char *code, char *filename, void (*progress_update)(int, int));
-int add_iso(char *filename, void (*update)(int, int));
+int op_init_partition(char *device);
+int op_extract_iso(char *code, char *filename, void (*progress_update)(int, int));
+int op_add_iso(char *filename, void (*update)(int, int));
+int op_remove_disc(char *code);
 
 #endif /* WBFS_OPS_H_FILE */

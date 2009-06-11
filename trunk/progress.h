@@ -17,6 +17,7 @@ int show_progress_dialog(const char *title,
 			 progress_starter starter,
 			 void *starter_data,
 			 progress_updater updater,
-			 int *cancel_indicator);
+			 int *cancel_indicator,
+			 int enable_cancel);
 
 #endif /* PROGRESS_H_FILE */

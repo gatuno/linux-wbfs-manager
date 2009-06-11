@@ -14,6 +14,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "config.h"
 #include "list_dir.h"
 
 static int compare_file_names(const void *p1, const void *p2)

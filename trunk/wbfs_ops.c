@@ -92,7 +92,7 @@ static void progress_update(int cur, int max)
   printf("DUMMY UPDATE: %u/%u\n", (unsigned int) cur, (unsigned int) max);
 }
 
-int extract_iso(char *code, char *filename, void (*update)(int, int))
+int op_extract_iso(char *code, char *filename, void (*update)(int, int))
 {
   FILE *f;
   wbfs_disc_t *disc;
@@ -116,7 +116,7 @@ int extract_iso(char *code, char *filename, void (*update)(int, int))
     return 1;
   }
 
-  /* TODO: fill ISO file with (disc->p->n_wii_sec_per_disc/2)*0x8000ULL bytes*/
+  wbfs_file_reserve_space(f, (disc->p->n_wii_sec_per_disc/2) * 0x8000ULL);
   wbfs_extract_disc(disc, write_wii_sector_file, (void *) f, update);
 
   fclose(f);
@@ -124,7 +124,7 @@ int extract_iso(char *code, char *filename, void (*update)(int, int))
   return 0;
 }
 
-int add_iso(char *filename, void (*update)(int, int))
+int op_add_iso(char *filename, void (*update)(int, int))
 {
   FILE *f;
   wbfs_disc_t *disc;
@@ -160,4 +160,26 @@ int add_iso(char *filename, void (*update)(int, int))
   
   fclose(f);
   return ret;
+}
+
+int op_init_partition(char *device)
+{
+  if (app_state.wbfs) {
+    wbfs_close(app_state.wbfs);
+    app_state.wbfs = NULL;
+  }
+
+  app_state.wbfs = wbfs_try_open_partition(device, 1);
+  if (app_state.wbfs != NULL)
+    return 0;
+  return 1;
+}
+
+int op_remove_disc(char *code)
+{
+  if (wbfs_rm_disc(app_state.wbfs, (u8 *) code)) {
+    show_error("Error Removing Disc", "Can't find disc id '%s'", code);
+    return 1;
+  }
+  return 0;
 }

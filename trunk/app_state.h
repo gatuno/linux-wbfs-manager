@@ -14,6 +14,10 @@
 #define APP_MAX_DEVICES 256
 
 typedef struct APP_STATE {
+  /* configuration */
+  int ignore_mounted_devices;
+
+  /* data */
   int num_devs;
   char *dev[APP_MAX_DEVICES];
   int cur_dev;

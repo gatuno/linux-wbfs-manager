@@ -15,12 +15,14 @@
 #include <gtk/gtk.h>
 #include <glade/glade.h>
 
+#include "config.h"
 #include "wbfs_gtk.h"
 #include "wbfs_ops.h"
 #include "app_state.h"
 #include "list_dir.h"
 #include "message.h"
 #include "progress.h"
+#include "devices.h"
 
 #include "libwbfs.h"
 
@@ -29,6 +31,10 @@
 GladeXML *glade_xml;
 static char cur_directory[PATH_MAX];
 static DIR_ITEM cur_dir_list[1024];
+
+static void update_fs_list(void);
+static void update_iso_list(void);
+static int load_device(void);
 
 GtkResponseType show_dialog_message(const char *title, const char *msg, GtkMessageType type, GtkButtonsType buttons)
 {
@@ -48,6 +54,26 @@ GtkResponseType show_dialog_message(const char *title, const char *msg, GtkMessa
   resp = gtk_dialog_run(GTK_DIALOG(dlg));
   gtk_widget_destroy(dlg);
   return resp;
+}
+
+static int get_device_id(const char *device)
+{
+  int i;
+
+  for (i = 0; i < app_state.num_devs; i++)
+    if (strcmp(app_state.dev[i], device) == 0)
+      return i;
+  return -1;
+}
+
+static void set_label_double(const char *widget_name, const char *format, double n)
+{
+  GtkWidget *widget;
+  char text[256];
+
+  widget = glade_xml_get_widget(glade_xml, widget_name);
+  snprintf(text, sizeof(text), format, n);
+  gtk_label_set_markup(GTK_LABEL(widget), text);
 }
 
 static void convert_discname_to_filename(char *filename, const char *discname, int max_len)
@@ -71,7 +97,7 @@ static int iso_extract_start(void *p, progress_updater update)
 {
   char **data = (char **) p;
 
-  return extract_iso(data[0], data[1], update);
+  return op_extract_iso(data[0], data[1], update);
 }
 
 static void iso_extract_update(int cur, int max)
@@ -95,7 +121,7 @@ static int iso_add_start(void *p, progress_updater update)
 {
   char *filename = (char *) p;
 
-  return add_iso(filename, update);
+  return op_add_iso(filename, update);
 }
 
 static void iso_add_update(int cur, int max)
@@ -113,6 +139,43 @@ static void iso_add_update(int cur, int max)
 
   gtk_progress_bar_set_fraction(progress_bar, fraction);
   gtk_progress_bar_set_text(progress_bar, txt);
+}
+
+/**
+ * Add an ISO file to the WBFS partition.
+ *
+ * TODO: check if there's enough space in the partition.
+ */
+static void add_iso_file(char *filename)
+{
+  char iso_file_path[PATH_MAX];
+  char msg[256];
+  
+  snprintf(iso_file_path, sizeof(iso_file_path), "%s/%s", cur_directory, filename);
+  
+  snprintf(msg, sizeof(msg), "Adding ISO file\n%s\n", filename);
+  show_progress_dialog("Adding ISO", msg, iso_add_start, iso_file_path, iso_add_update, &cancel_wbfs_op, 0);
+  update_iso_list();
+}
+
+/**
+ * Change the current directory to the directory in the "fs_cur_dir" entry.
+ */
+static void change_cur_dir(void)
+{
+  GtkWidget *widget;
+  GtkEntry *fs_cur_dir;
+  char full_path[PATH_MAX];
+
+  widget = glade_xml_get_widget(glade_xml, "fs_cur_dir");
+  fs_cur_dir = GTK_ENTRY(widget);
+  strncpy(full_path, gtk_entry_get_text(fs_cur_dir), sizeof(full_path));
+  full_path[sizeof(full_path)-1] = '\0';
+
+  if (chdir(full_path) != 0)
+    show_error("Error", "Can't change directory to '%s'.", full_path);
+  else
+    update_fs_list();
 }
 
 /**
@@ -186,7 +249,7 @@ static void update_iso_list(void)
   GtkWidget *widget;
   GtkTreeView *iso_list;
   u8 *buf;
-  u32 size;
+  u32 size, block_count;
   int i, n;
 
   widget = glade_xml_get_widget(glade_xml, "iso_list");
@@ -217,68 +280,55 @@ static void update_iso_list(void)
 			 -1);
     }
   wbfs_iofree(buf);
-}
 
-/**
- * Add an ISO file to the WBFS partition.
- *
- * TODO: check if there's enough space in the partition.
- */
-static void add_iso_file(char *filename)
-{
-  char iso_file_path[PATH_MAX];
-  char msg[256];
-  
-  snprintf(iso_file_path, sizeof(iso_file_path), "%s/%s", cur_directory, filename);
-  
-  snprintf(msg, sizeof(msg), "Adding ISO file\n%s\n", filename);
-  show_progress_dialog("Extracting ISO", msg, iso_add_start, iso_file_path, iso_add_update, &cancel_wbfs_op);
-  update_iso_list();
-}
-
-/**
- * Change the current directory to the directory in the "fs_cur_dir" entry.
- */
-static void change_cur_dir(void)
-{
-  GtkWidget *widget;
-  GtkEntry *fs_cur_dir;
-  char full_path[PATH_MAX];
-
-  widget = glade_xml_get_widget(glade_xml, "fs_cur_dir");
-  fs_cur_dir = GTK_ENTRY(widget);
-  strncpy(full_path, gtk_entry_get_text(fs_cur_dir), sizeof(full_path));
-  full_path[sizeof(full_path)-1] = '\0';
-
-  if (chdir(full_path) != 0)
-    show_error("Error", "Can't change directory to '%s'.", full_path);
-  else
-    update_fs_list();
+  /* set space usage information */
+  block_count = wbfs_count_usedblocks(app_state.wbfs);
+  set_label_double("label_total_space", " <b>%.2f</b>GB",
+		   (double) app_state.wbfs->n_wbfs_sec * app_state.wbfs->wbfs_sec_sz / 1024. / 1024. / 1024.);
+  set_label_double("label_used_space", " <b>%.2f</b>GB", 
+		   (double) (app_state.wbfs->n_wbfs_sec - block_count) * app_state.wbfs->wbfs_sec_sz / 1024. / 1024. / 1024.);
+  set_label_double("label_free_space", " <b>%.2f</b>GB",
+		   (double) block_count * app_state.wbfs->wbfs_sec_sz / 1024. / 1024. / 1024.);
 }
 
 /**
  * Load the device 'app_state.cur_dev'
  */
-static void reload_device(void)
+static int load_device(void)
 {
-  /* close current device */
-  if (app_state.wbfs != NULL)
-    wbfs_close(app_state.wbfs);
-  app_state.wbfs = NULL;
-  update_iso_list();
-  if (app_state.cur_dev < 0)
-    return;
+  GtkWidget *widget;
+  char device_label[256];
 
-  /* open new device */
-  app_state.wbfs = wbfs_try_open_partition(app_state.dev[app_state.cur_dev], 0);
-  if (app_state.wbfs == NULL) {
-    show_error("Error", "Can't open device '%s'.", app_state.dev[app_state.cur_dev]);
-    return;
+  widget = glade_xml_get_widget(glade_xml, "device_name");
+
+  /* close current device */
+  if (app_state.wbfs != NULL) {
+    wbfs_close(app_state.wbfs);
+    app_state.wbfs = NULL;
+  }
+  if (app_state.cur_dev < 0) {
+    show_error("Error", "No device selected.");
+    return 1;
   }
 
-  //dump_wbfs_info(app_state.wbfs);
-  
+  /* open device */
+  app_state.wbfs = wbfs_try_open_partition(app_state.dev[app_state.cur_dev], 0);
+  if (app_state.wbfs == NULL) {
+    gtk_label_set_markup(GTK_LABEL(widget), "<b>(none)</b>");
+    set_label_double("label_total_space", "", 0.);
+    set_label_double("label_used_space", "", 0.);
+    set_label_double("label_free_space", "", 0.);
+    show_error("Error", "Can't open device '%s'\n(do you have appropriate permissions?).", app_state.dev[app_state.cur_dev]);
+    update_iso_list();
+    return 1;
+  }
+
+  /* set device label */
+  snprintf(device_label, sizeof(device_label), "<b>%s</b>", app_state.dev[app_state.cur_dev]);
+  gtk_label_set_markup(GTK_LABEL(widget), device_label);
+
   update_iso_list();
+  return 0;
 }
 
 /**
@@ -370,6 +420,10 @@ static void init_widgets(void)
   GtkWidget *widget;
   GtkTreeViewColumn *col;
 
+  /* setup menus */
+  widget = glade_xml_get_widget(glade_xml, "menu_ignore_mounted_devices");
+  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget), app_state.ignore_mounted_devices);
+
   /* setup device list store */
   widget = glade_xml_get_widget(glade_xml, "device_list");
   dev_list = GTK_COMBO_BOX(widget);
@@ -439,7 +493,9 @@ void fs_list_row_activated_cb(GtkTreeView *tree_view,
 
   switch (is_dir) {
   case 0:
-    if (show_confirmation("Add ISO", "Add ISO file '%s'?", filename))
+    if (app_state.wbfs == NULL)
+      show_message("Add ISO", "You must first load a WBFS device.");
+    else if (show_confirmation("Add ISO", "Add ISO file '%s'?", filename))
       add_iso_file(filename);
     break;
 
@@ -486,7 +542,6 @@ void reload_device_clicked_cb(GtkButton *b, gpointer data)
   GtkTreeIter iter;
   GtkWidget *widget;
   GtkComboBox *dev_list;
-  int i;
   char *cur_sel;
 
   /* get selected device */
@@ -499,19 +554,11 @@ void reload_device_clicked_cb(GtkButton *b, gpointer data)
   if (cur_sel == NULL)
     return;
 
-  /* set selection */
-  for (i = 0; i < app_state.num_devs; i++)
-    if (strcmp(app_state.dev[i], cur_sel) == 0) {
-      app_state.cur_dev = i;
-      if (app_state.cur_dev >= 0) {
-	char device_name[32];
-	widget = glade_xml_get_widget(glade_xml, "device_name");
-	snprintf(device_name, sizeof(device_name), "<b>%s</b>", app_state.dev[app_state.cur_dev]);
-	gtk_label_set_markup(GTK_LABEL(widget), device_name);
-      }
-      reload_device();
-      return;
-    }
+  /* load device */
+  app_state.cur_dev = get_device_id(cur_sel);
+  load_device();
+
+  g_free(cur_sel);
 }
 
 void reload_device_list_clicked_cb(GtkButton *b, gpointer data)
@@ -527,6 +574,64 @@ void main_window_realize_cb(GtkWidget *w, gpointer data)
 void main_window_delete_event_cb(GtkWidget *w, gpointer data)
 {
   gtk_main_quit();
+}
+
+void menu_init_wbfs_partition_activate_cb(GtkWidget *c, gpointer data)
+{
+  GtkListStore *store;
+  GtkTreeIter iter;
+  GtkWidget *widget;
+  GtkComboBox *dev_list;
+  char *cur_sel;
+  char mount_point[256];
+  char device[256];
+  char msg[1024];
+  int ret;
+
+  /* get selected device */
+  widget = glade_xml_get_widget(glade_xml, "device_list");
+  dev_list = GTK_COMBO_BOX(widget);
+  store = GTK_LIST_STORE(gtk_combo_box_get_model(dev_list));
+  cur_sel = NULL;
+  if (gtk_combo_box_get_active_iter(dev_list, &iter))
+    gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, 0, &cur_sel, -1);
+  if (cur_sel == NULL)
+    return;
+  strncpy(device, cur_sel, sizeof(device));
+  device[sizeof(device)-1] = '\0';
+  g_free(cur_sel);
+
+  /* give fair warning */
+  snprintf(msg, sizeof(msg),
+	   "WARNING: ALL PARTITION DATA WILL BE PERMANENTLY LOST!\n"
+	   "\n"
+	   "This will format for WBFS the partition\n"
+	   "\n"
+	   "%s\n"
+	   "\n"
+	   "Are you ABSOLUTELY SURE you want to do this?",
+	   device);
+  ret = show_warning_yes_no("Initialize WBFS Partition", msg);
+  if (ret != 1)
+    return;
+  
+  /* give extra warning if device seems to be mounted */
+  if (is_device_mounted(device, mount_point, sizeof(mount_point))) {
+    ret = show_warning_yes_no("Initialize WBFS Partition",
+			      "The partition %s seems to be mounted in directory\n"
+			      "\n"
+			      "%s\n"
+			      "\n"
+			      "It is HIGHLY RECOMMENDED that you unmount the partition before proceeding. Are you sure you want to proceed?\n",
+			      device,
+			      mount_point);
+    if (ret != 1)
+      return;
+  }
+  
+  op_init_partition(device);
+  app_state.cur_dev = get_device_id(device);
+  load_device();
 }
 
 void menu_quit_activate_cb(GtkWidget *w, gpointer data)
@@ -582,7 +687,7 @@ void iso_extract_clicked_cb(GtkButton *b, gpointer user_data)
       p[1] = iso_file_path;
 
       snprintf(msg, sizeof(msg), "Extracting ISO to\n%s\n", iso_file);
-      show_progress_dialog("Extracting ISO", msg, iso_extract_start, p, iso_extract_update, &cancel_wbfs_op);
+      show_progress_dialog("Extracting ISO", msg, iso_extract_start, p, iso_extract_update, &cancel_wbfs_op, 1);
       update_fs_list();
     }
     
@@ -601,8 +706,10 @@ void fs_add_iso_clicked_cb(GtkButton *b, gpointer user_data)
   int mode;
   char *filename;
 
-  if (app_state.wbfs == NULL)
+  if (app_state.wbfs == NULL) {
+    show_message("Add ISO", "You must first load a WBFS device.");
     return;
+  }
 
   widget = glade_xml_get_widget(glade_xml, "fs_list");
   fs_list = GTK_TREE_VIEW(widget);
@@ -621,6 +728,38 @@ void fs_add_iso_clicked_cb(GtkButton *b, gpointer user_data)
   g_free(filename);
 }
 
+void iso_remove_clicked_cb(GtkButton *b, gpointer user_data)
+{
+  GtkWidget *widget;
+  GtkTreeView *iso_list;
+  GtkTreeSelection *sel;
+  GtkTreeModel *model;
+  GtkTreeIter iter;
+
+  if (app_state.wbfs == NULL)
+    return;
+
+  widget = glade_xml_get_widget(glade_xml, "iso_list");
+  iso_list = GTK_TREE_VIEW(widget);
+  sel = gtk_tree_view_get_selection(iso_list);
+  if (gtk_tree_selection_get_selected(sel, &model, &iter)) {
+    char *code, *name;
+
+    gtk_tree_model_get(model, &iter, 0, &code, 1, &name, -1);
+    if (show_confirmation("Remove Disc", "Remove disc '%s' (%s)?", name, code))
+      op_remove_disc(code);
+    g_free(code);
+    g_free(name);
+
+    update_iso_list();
+  }
+}
+
+void menu_ignore_mounted_devices_toggled_cb(GtkCheckMenuItem *c, gpointer data)
+{
+  app_state.ignore_mounted_devices = gtk_check_menu_item_get_active(c) ? 1 : 0;
+  reload_device_list();
+}
 
 gboolean iso_list_button_press_event_cb(GtkWidget *w,
                                         GdkEventButton *event,
