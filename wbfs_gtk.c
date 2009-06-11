@@ -292,10 +292,8 @@ static int load_device(void)
     wbfs_close(app_state.wbfs);
     app_state.wbfs = NULL;
   }
-  if (app_state.cur_dev < 0) {
-    show_error("Error", "No device selected.");
+  if (app_state.cur_dev < 0)
     return 1;
-  }
 
   /* open device */
   start_msg_capture();
@@ -343,22 +341,25 @@ static void reload_device_list(void)
   dev_list = GTK_COMBO_BOX(widget);
   store = GTK_LIST_STORE(gtk_combo_box_get_model(dev_list));
 
-  /* get current selection index */
-  new_sel_index = -1;
-  if (gtk_combo_box_get_active_iter(dev_list, &iter)) {
-    char *cur_sel = NULL;
-    gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, 0, &cur_sel, -1);
-    for (i = 0; i < app_state.num_devs; i++) {
-      if (cur_sel != NULL && strcmp(cur_sel, app_state.dev[i]) == 0) {
-	new_sel_index = i;
-	break;
-      }
-    }
-    if (cur_sel != NULL)
-      g_free(cur_sel);
-  }
-  if (new_sel_index < 0)
+  /* if no device open and there's a preferred one, select it */
+  if (app_state.wbfs == NULL && app_state.def_dev >= 0)
     new_sel_index = app_state.def_dev;
+  else {
+    /* get current selection index */
+    new_sel_index = -1;
+    if (gtk_combo_box_get_active_iter(dev_list, &iter)) {
+      char *cur_sel = NULL;
+      gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, 0, &cur_sel, -1);
+      for (i = 0; i < app_state.num_devs; i++) {
+	if (cur_sel != NULL && strcmp(cur_sel, app_state.dev[i]) == 0) {
+	  new_sel_index = i;
+	  break;
+	}
+      }
+      if (cur_sel != NULL)
+	g_free(cur_sel);
+    }
+  }
 
   /* re-fill list */
   gtk_list_store_clear(store);
