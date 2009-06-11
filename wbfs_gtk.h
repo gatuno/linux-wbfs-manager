@@ -12,8 +12,6 @@
 #include <gtk/gtk.h>
 #include <glade/glade.h>
 
-extern GladeXML *glade_xml;
-
-GtkResponseType show_dialog_message(const char *title, const char *msg, GtkMessageType type, GtkButtonsType buttons);
+GtkWidget *get_widget(const char *name);
 
 #endif /* WBFS_GTK_H_FILE */

@@ -28,7 +28,7 @@
 
 #define GLADE_XML_FILE "wbfs_gui.glade"
 
-GladeXML *glade_xml;
+static GladeXML *glade_xml;
 static char cur_directory[PATH_MAX];
 static DIR_ITEM cur_dir_list[1024];
 
@@ -36,24 +36,9 @@ static void update_fs_list(void);
 static void update_iso_list(void);
 static int load_device(void);
 
-GtkResponseType show_dialog_message(const char *title, const char *msg, GtkMessageType type, GtkButtonsType buttons)
+GtkWidget *get_widget(const char *name)
 {
-  GtkWidget *main_window;
-  GtkWidget *dlg;
-  GtkResponseType resp;
-
-  main_window = glade_xml_get_widget(glade_xml, "main_window");
-  dlg = gtk_message_dialog_new(GTK_WINDOW(main_window),
-			       GTK_DIALOG_MODAL,
-			       type,
-			       buttons,
-			       "%s",
-			       msg);
-  if (title != NULL)
-    gtk_window_set_title(GTK_WINDOW(dlg), title);
-  resp = gtk_dialog_run(GTK_DIALOG(dlg));
-  gtk_widget_destroy(dlg);
-  return resp;
+  return glade_xml_get_widget(glade_xml, name);
 }
 
 static int get_device_id(const char *device)
@@ -71,7 +56,7 @@ static void set_label_double(const char *widget_name, const char *format, double
   GtkWidget *widget;
   char text[256];
 
-  widget = glade_xml_get_widget(glade_xml, widget_name);
+  widget = get_widget(widget_name);
   snprintf(text, sizeof(text), format, n);
   gtk_label_set_markup(GTK_LABEL(widget), text);
 }
@@ -107,7 +92,7 @@ static void iso_extract_update(int cur, int max)
   double fraction;
   char txt[32];
 
-  widget = glade_xml_get_widget(glade_xml, "progress_bar");
+  widget = get_widget("progress_bar");
   progress_bar = GTK_PROGRESS_BAR(widget);
 
   fraction = (double) cur / (double) max;
@@ -131,7 +116,7 @@ static void iso_add_update(int cur, int max)
   double fraction;
   char txt[32];
 
-  widget = glade_xml_get_widget(glade_xml, "progress_bar");
+  widget = get_widget("progress_bar");
   progress_bar = GTK_PROGRESS_BAR(widget);
 
   fraction = (double) cur / (double) max;
@@ -167,7 +152,7 @@ static void change_cur_dir(void)
   GtkEntry *fs_cur_dir;
   char full_path[PATH_MAX];
 
-  widget = glade_xml_get_widget(glade_xml, "fs_cur_dir");
+  widget = get_widget("fs_cur_dir");
   fs_cur_dir = GTK_ENTRY(widget);
   strncpy(full_path, gtk_entry_get_text(fs_cur_dir), sizeof(full_path));
   full_path[sizeof(full_path)-1] = '\0';
@@ -190,10 +175,10 @@ static void update_fs_list(void)
   GtkEntry *fs_cur_dir;
   int i;
 
-  widget = glade_xml_get_widget(glade_xml, "fs_list");
+  widget = get_widget("fs_list");
   fs_list = GTK_TREE_VIEW(widget);
   store = GTK_LIST_STORE(gtk_tree_view_get_model(fs_list));
-  widget = glade_xml_get_widget(glade_xml, "fs_cur_dir");
+  widget = get_widget("fs_cur_dir");
   fs_cur_dir = GTK_ENTRY(widget);
 
   /* get current directory and copy it to current dir display */
@@ -252,7 +237,7 @@ static void update_iso_list(void)
   u32 size, block_count;
   int i, n;
 
-  widget = glade_xml_get_widget(glade_xml, "iso_list");
+  widget = get_widget("iso_list");
   iso_list = GTK_TREE_VIEW(widget);
   store = GTK_LIST_STORE(gtk_tree_view_get_model(iso_list));
 
@@ -298,8 +283,9 @@ static int load_device(void)
 {
   GtkWidget *widget;
   char device_label[256];
+  char *captured_msgs;
 
-  widget = glade_xml_get_widget(glade_xml, "device_name");
+  widget = get_widget("device_name");
 
   /* close current device */
   if (app_state.wbfs != NULL) {
@@ -312,13 +298,21 @@ static int load_device(void)
   }
 
   /* open device */
+  start_msg_capture();
   app_state.wbfs = wbfs_try_open_partition(app_state.dev[app_state.cur_dev], 0);
+  captured_msgs = end_msg_capture();
   if (app_state.wbfs == NULL) {
     gtk_label_set_markup(GTK_LABEL(widget), "<b>(none)</b>");
     set_label_double("label_total_space", "", 0.);
     set_label_double("label_used_space", "", 0.);
     set_label_double("label_free_space", "", 0.);
-    show_error("Error", "Can't open device '%s'\n(do you have appropriate permissions?).", app_state.dev[app_state.cur_dev]);
+    if (*captured_msgs != '\0')
+      show_error("Error", "Can't open device '%s': %s.\n\n(Do you have appropriate permissions?)",
+		 app_state.dev[app_state.cur_dev],
+		 captured_msgs);
+    else
+      show_error("Error", "Can't open device '%s'.\n\n(Do you have appropriate permissions?)",
+		 app_state.dev[app_state.cur_dev]);
     update_iso_list();
     return 1;
   }
@@ -345,11 +339,11 @@ static void reload_device_list(void)
 
   app_reload_device_list();
 
-  widget = glade_xml_get_widget(glade_xml, "device_list");
+  widget = get_widget("device_list");
   dev_list = GTK_COMBO_BOX(widget);
   store = GTK_LIST_STORE(gtk_combo_box_get_model(dev_list));
 
-  /* get new selection index */
+  /* get current selection index */
   new_sel_index = -1;
   if (gtk_combo_box_get_active_iter(dev_list, &iter)) {
     char *cur_sel = NULL;
@@ -363,6 +357,8 @@ static void reload_device_list(void)
     if (cur_sel != NULL)
       g_free(cur_sel);
   }
+  if (new_sel_index < 0)
+    new_sel_index = app_state.def_dev;
 
   /* re-fill list */
   gtk_list_store_clear(store);
@@ -421,18 +417,18 @@ static void init_widgets(void)
   GtkTreeViewColumn *col;
 
   /* setup menus */
-  widget = glade_xml_get_widget(glade_xml, "menu_ignore_mounted_devices");
+  widget = get_widget("menu_ignore_mounted_devices");
   gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget), app_state.ignore_mounted_devices);
 
   /* setup device list store */
-  widget = glade_xml_get_widget(glade_xml, "device_list");
+  widget = get_widget("device_list");
   dev_list = GTK_COMBO_BOX(widget);
   list_store = gtk_list_store_new(1, G_TYPE_STRING);
   gtk_combo_box_set_model(dev_list, GTK_TREE_MODEL(list_store));
   g_object_unref(list_store);
 
   /* setup ISO list store and model */
-  widget = glade_xml_get_widget(glade_xml, "iso_list");
+  widget = get_widget("iso_list");
   iso_list = GTK_TREE_VIEW(widget);
   renderer = gtk_cell_renderer_text_new();
   gtk_tree_view_insert_column_with_attributes(iso_list, -1, "Code", renderer, "text", 0, NULL);
@@ -447,7 +443,7 @@ static void init_widgets(void)
   gtk_tree_view_column_set_expand(col, 1);
 
   /* setup fs list store and model */
-  widget = glade_xml_get_widget(glade_xml, "fs_list");
+  widget = get_widget("fs_list");
   fs_list = GTK_TREE_VIEW(widget);
   renderer = gtk_cell_renderer_pixbuf_new();
   gtk_tree_view_insert_column_with_data_func(fs_list, -1, "", renderer, fs_list_icon_data_func, NULL, NULL);
@@ -462,7 +458,7 @@ static void init_widgets(void)
   gtk_tree_view_column_set_expand(col, 1);
 
   /* setup fs dir */
-  widget = glade_xml_get_widget(glade_xml, "fs_cur_dir");
+  widget = get_widget("fs_cur_dir");
   fs_cur_dir = GTK_ENTRY(widget);
   cur_dir_list[0].name = NULL;
   update_fs_list();
@@ -545,7 +541,7 @@ void reload_device_clicked_cb(GtkButton *b, gpointer data)
   char *cur_sel;
 
   /* get selected device */
-  widget = glade_xml_get_widget(glade_xml, "device_list");
+  widget = get_widget("device_list");
   dev_list = GTK_COMBO_BOX(widget);
   store = GTK_LIST_STORE(gtk_combo_box_get_model(dev_list));
   cur_sel = NULL;
@@ -569,6 +565,12 @@ void reload_device_list_clicked_cb(GtkButton *b, gpointer data)
 void main_window_realize_cb(GtkWidget *w, gpointer data)
 {
   reload_device_list();
+  if (app_state.def_dev >= 0) {
+    app_state.cur_dev = app_state.def_dev;
+    start_msg_capture();
+    load_device();
+    end_msg_capture();
+  }
 }
 
 void main_window_delete_event_cb(GtkWidget *w, gpointer data)
@@ -589,7 +591,7 @@ void menu_init_wbfs_partition_activate_cb(GtkWidget *c, gpointer data)
   int ret;
 
   /* get selected device */
-  widget = glade_xml_get_widget(glade_xml, "device_list");
+  widget = get_widget("device_list");
   dev_list = GTK_COMBO_BOX(widget);
   store = GTK_LIST_STORE(gtk_combo_box_get_model(dev_list));
   cur_sel = NULL;
@@ -643,7 +645,7 @@ void menu_about_activate_cb(GtkWidget *w, gpointer data)
 {
   GtkWidget *about_dialog;
 
-  about_dialog = glade_xml_get_widget(glade_xml, "about_dialog");
+  about_dialog = get_widget("about_dialog");
   gtk_dialog_run(GTK_DIALOG(about_dialog));
 }
 
@@ -651,7 +653,7 @@ void about_dialog_response_cb(GtkWidget *w, gpointer data)
 {
   GtkWidget *about_dialog;
 
-  about_dialog = glade_xml_get_widget(glade_xml, "about_dialog");
+  about_dialog = get_widget("about_dialog");
   gtk_widget_hide(about_dialog);
 }
 
@@ -666,7 +668,7 @@ void iso_extract_clicked_cb(GtkButton *b, gpointer user_data)
   if (app_state.wbfs == NULL)
     return;
 
-  widget = glade_xml_get_widget(glade_xml, "iso_list");
+  widget = get_widget("iso_list");
   iso_list = GTK_TREE_VIEW(widget);
   sel = gtk_tree_view_get_selection(iso_list);
   if (gtk_tree_selection_get_selected(sel, &model, &iter)) {
@@ -711,7 +713,7 @@ void fs_add_iso_clicked_cb(GtkButton *b, gpointer user_data)
     return;
   }
 
-  widget = glade_xml_get_widget(glade_xml, "fs_list");
+  widget = get_widget("fs_list");
   fs_list = GTK_TREE_VIEW(widget);
   sel = gtk_tree_view_get_selection(fs_list);
   if (! gtk_tree_selection_get_selected(sel, &model, &iter))
@@ -739,7 +741,7 @@ void iso_remove_clicked_cb(GtkButton *b, gpointer user_data)
   if (app_state.wbfs == NULL)
     return;
 
-  widget = glade_xml_get_widget(glade_xml, "iso_list");
+  widget = get_widget("iso_list");
   iso_list = GTK_TREE_VIEW(widget);
   sel = gtk_tree_view_get_selection(iso_list);
   if (gtk_tree_selection_get_selected(sel, &model, &iter)) {
@@ -761,9 +763,9 @@ void menu_ignore_mounted_devices_toggled_cb(GtkCheckMenuItem *c, gpointer data)
   reload_device_list();
 }
 
-gboolean iso_list_button_press_event_cb(GtkWidget *w,
-                                        GdkEventButton *event,
-                                        gpointer user_data)
+gboolean iso_list_button_release_event_cb(GtkWidget *w,
+					  GdkEventButton *event,
+					  gpointer user_data)
 {
   if (app_state.wbfs == NULL)
     return FALSE;
@@ -776,12 +778,12 @@ gboolean iso_list_button_press_event_cb(GtkWidget *w,
     GtkTreeIter iter;
     char *code, *name;
 
-    widget = glade_xml_get_widget(glade_xml, "rom_list");
+    widget = get_widget("iso_list");
     rom_list = GTK_TREE_VIEW(widget);
     sel = gtk_tree_view_get_selection(rom_list);
     if (gtk_tree_selection_get_selected(sel, &model, &iter)) {
       gtk_tree_model_get(model, &iter, 0, &code, 1, &name, -1);
-      printf("right button clicked on item '%s' (%s)\n", name, code);
+      //printf("right button clicked on item '%s' (%s)\n", name, code);
       g_free(code);
       g_free(name);
     }
@@ -804,7 +806,7 @@ int main(int argc, char *argv[])
   init_widgets();
 
   /* show main window */
-  main_window = glade_xml_get_widget(glade_xml, "main_window");
+  main_window = get_widget("main_window");
   gtk_widget_show(main_window);
 
   gtk_main();

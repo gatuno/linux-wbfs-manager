@@ -45,7 +45,7 @@ void progress_dialog_map_event_cb(GtkWidget *w, gpointer data)
     GtkWidget *progress_dialog;
 
     prog_starter_ret = prog_starter(prog_starter_data, do_update);
-    progress_dialog = glade_xml_get_widget(glade_xml, "progress_dialog");
+    progress_dialog = get_widget("progress_dialog");
     gtk_widget_hide(progress_dialog);
   }
 }
@@ -75,22 +75,22 @@ int show_progress_dialog(const char *title,
   prog_updater = updater;
 
   /* set message */
-  widget = glade_xml_get_widget(glade_xml, "progress_message");
+  widget = get_widget("progress_message");
   gtk_label_set_text(GTK_LABEL(widget), message);
 
   /* empty progress */
-  widget = glade_xml_get_widget(glade_xml, "progress_progress");
+  widget = get_widget("progress_progress");
   gtk_label_set_text(GTK_LABEL(widget), "");
-  widget = glade_xml_get_widget(glade_xml, "progress_bar");
+  widget = get_widget("progress_bar");
   gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(widget), 0.);
 
   /* show dialog */
-  widget = glade_xml_get_widget(glade_xml, "progress_button");
+  widget = get_widget("progress_button");
   if (enable_cancel)
     gtk_widget_show(widget);
   else
     gtk_widget_hide(widget);
-  progress_dialog = glade_xml_get_widget(glade_xml, "progress_dialog");
+  progress_dialog = get_widget("progress_dialog");
   gtk_window_set_title(GTK_WINDOW(progress_dialog), title);
   resp = gtk_dialog_run(GTK_DIALOG(progress_dialog));
   gtk_widget_hide(progress_dialog);

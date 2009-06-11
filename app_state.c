@@ -20,6 +20,8 @@ void app_init(void)
   app_state.num_devs = 0;
   app_state.ignore_mounted_devices = 1;
   app_state.wbfs = NULL;
+  app_state.cur_dev = -1;
+  app_state.def_dev = -1;
 }
 
 void app_reload_device_list(void)
@@ -29,5 +31,5 @@ void app_reload_device_list(void)
   for (i = 0; i < app_state.num_devs; i++)
     free(app_state.dev[i]);
 
-  app_state.num_devs = list_available_devices(app_state.dev, APP_MAX_DEVICES, app_state.ignore_mounted_devices);
+  app_state.num_devs = list_available_devices(app_state.dev, APP_MAX_DEVICES, &app_state.def_dev, app_state.ignore_mounted_devices);
 }

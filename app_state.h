@@ -21,6 +21,7 @@ typedef struct APP_STATE {
   int num_devs;
   char *dev[APP_MAX_DEVICES];
   int cur_dev;
+  int def_dev;
 
   wbfs_t *wbfs;
 } APP_STATE;

@@ -14,4 +14,7 @@ int show_confirmation(const char *title, const char *s, ...);
 void show_message(const char *title, const char *s, ...);
 void show_error(const char *title, const char *s, ...);
 
+void start_msg_capture(void);
+char *end_msg_capture(void);
+
 #endif /* MESSAGE_H_FILE */

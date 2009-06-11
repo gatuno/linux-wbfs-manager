@@ -10,6 +10,6 @@
 #define DEVICES_H_FILE
 
 int is_device_mounted(const char *device, char *mount_point, int max_len);
-int list_available_devices(char **list, int max_items, int skip_mounted);
+int list_available_devices(char **list, int max_items, int *preferred, int skip_mounted);
 
 #endif /* DEVICES_H_FILE */

@@ -12,6 +12,9 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <glob.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "config.h"
 #include "devices.h"
@@ -177,6 +180,22 @@ static const char *check_device_mounted(const char *device, MOUNT_ITEM *mounts, 
   return NULL;
 }
 
+static int check_partition_looks_wbfs(const char *device)
+{
+  int fd;
+  char id[4];
+
+  fd = open(device, O_RDONLY);
+  if (fd < 0)
+    return 0;
+  if (read(fd, id, 4) != 4) {
+    close(fd);
+    return 0;
+  }
+  close(fd);
+  return (memcmp(id, "WBFS", 4) == 0);
+}
+
 int is_device_mounted(const char *device, char *mount_point, int max_len)
 {
   int num_mounts;
@@ -194,7 +213,7 @@ int is_device_mounted(const char *device, char *mount_point, int max_len)
   return (mp != NULL) ? 1 : 0;
 }
 
-int list_available_devices(char **list, int max_items, int skip_mounted)
+int list_available_devices(char **list, int max_items, int *preferred, int skip_mounted)
 {
   MOUNT_ITEM mounts[256];
   glob_t gl;
@@ -216,6 +235,16 @@ int list_available_devices(char **list, int max_items, int skip_mounted)
   }
 
   free_mounts(mounts, num_mounts);
+
+  /* check if there's a preferred */
+  if (preferred != NULL) {
+    *preferred = -1;
+    for (i = 0; i < num_items; i++)
+      if (check_partition_looks_wbfs(list[i])) {
+	*preferred = i;
+	break;
+      }
+  }
 
   return num_items;
 }

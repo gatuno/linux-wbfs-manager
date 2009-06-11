@@ -23,7 +23,8 @@ void wbfs_fatal(const char *s, ...)
   vsnprintf(msg, sizeof(msg), s, args);
   va_end(args);
 
-  show_error("Fatal Error", "Fatal error from libwbfs:\n%s", msg);
+  show_error("FATAL ERROR", "Fatal error from libwbfs:\n%s\n\nApplication will now terminate.", msg);
+  exit(1);
 }
 
 void wbfs_error(const char *s, ...)
@@ -35,7 +36,7 @@ void wbfs_error(const char *s, ...)
   vsnprintf(msg, sizeof(msg), s, args);
   va_end(args);
 
-  show_error("Error", "Error from libwbfs:\n%s", msg);
+  show_error("Error", "%s", msg);
 }
 
 void wbfs_warning(const char *s, ...)
@@ -47,5 +48,5 @@ void wbfs_warning(const char *s, ...)
   vsnprintf(msg, sizeof(msg), s, args);
   va_end(args);
 
-  show_message("Warning", "Warning from libwbfs:\n%s", msg);
+  show_message("Warning", "%s", msg);
 }
