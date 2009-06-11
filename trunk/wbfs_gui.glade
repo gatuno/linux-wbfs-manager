@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
-<!--Generated with glade3 3.4.5 on Thu Jun 11 00:56:46 2009 -->
+<!--Generated with glade3 3.4.5 on Thu Jun 11 02:12:34 2009 -->
 <glade-interface>
   <widget class="GtkWindow" id="main_window">
     <property name="width_request">800</property>
@@ -209,11 +209,19 @@
                     <property name="visible">True</property>
                     <property name="spacing">3</property>
                     <child>
-                      <widget class="GtkTreeView" id="iso_list">
+                      <widget class="GtkScrolledWindow" id="scrolledwindow1">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="events">GDK_BUTTON_PRESS_MASK | GDK_STRUCTURE_MASK</property>
-                        <signal name="button_press_event" handler="iso_list_button_press_event_cb"/>
+                        <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+                        <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+                        <child>
+                          <widget class="GtkTreeView" id="iso_list">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="events">GDK_BUTTON_PRESS_MASK | GDK_STRUCTURE_MASK</property>
+                            <signal name="button_press_event" handler="iso_list_button_press_event_cb"/>
+                          </widget>
+                        </child>
                       </widget>
                     </child>
                     <child>
@@ -467,7 +475,7 @@
     <property name="type_hint">GDK_WINDOW_TYPE_HINT_NORMAL</property>
     <property name="transient_for">main_window</property>
     <property name="program_name">Linux WBFS Manager</property>
-    <property name="version">0.1.1</property>
+    <property name="version">0.1.2</property>
     <property name="copyright" translatable="yes">Copyright (C) 2009 Ricardo Massaro, Kwiirk, caristat</property>
     <property name="website">http://code.google.com/p/linux-wbfs-manager/</property>
     <property name="license" translatable="yes">GNU General Public License version 2

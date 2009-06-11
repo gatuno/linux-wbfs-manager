@@ -7,10 +7,15 @@ OBJS = wbfs_gtk.o libwbfs_os.o wbfs_ops.o message.o app_state.o devices.o progre
 LIBWBFS_OBJS = libwbfs.o libwbfs_unix.o wiidisc.o rijndael.o
 LIBS = `pkg-config --libs gmodule-export-2.0 libglade-2.0`
 
+.PHONY: all clean dist
+
 all: wbfs_gtk
 
 clean:
 	rm -f *~ libwbfs/*~ $(OBJS) wbfs_gtk
+
+dist: clean
+	cd .. && tar cvzf linux-wbfs-manager-$(VERSION).tar.gz --exclude=.svn linux-wbfs-manager
 
 wbfs_gtk: $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
