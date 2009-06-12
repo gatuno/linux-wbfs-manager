@@ -80,8 +80,8 @@ static int read_wii_file(void *_fp, u32 offset, u32 count, void *iobuf)
     show_error("Error reading ISO", "Can't seek in disc file.");
     return 1;
   }
-  if (fread(iobuf, count, 1, fp) != 1){
-    show_error("Error reading ISO", "Can't reading disc file.");
+  if (fread(iobuf, count, 1, fp) != 1) {
+    show_error("Error reading ISO", "Can't read disc file.");
     return 1;
   }
   return 0;
