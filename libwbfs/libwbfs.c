@@ -519,8 +519,8 @@ u32 wbfs_add_disc
 	if (new_name)
 	{
 		wbfs_memset(b+0x20, 0, 0x40);
-		if(strlen(new_name)>=0x40) new_name[0x3f]=0;
-		strcpy((char *) b+0x20, new_name);
+		if(strlen(new_name)>=0x40) new_name[0x39]=0;
+		strcpy((char *) (b+0x20), new_name);
 	}
 	
 	fprintf(stderr, "adding %c%c%c%c%c%c %s...\n",b[0], b[1], b[2], b[3], b[4], b[5], b + 0x20);
@@ -609,8 +609,8 @@ u32 wbfs_ren_disc(wbfs_t*p, u8* discid, u8* newname)
 		return 1;
 	
 	memset(d->header->disc_header_copy+0x20, 0, 0x40);
-	strncpy((char *)(d->header->disc_header_copy+0x20), (char*)newname, 0x3f);
-	d->header->disc_header_copy[0x20+0x3f] = '\0'; //force last char to 0
+	strncpy((char *)(d->header->disc_header_copy+0x20), (char*)newname, 0x39);
+	d->header->disc_header_copy[0x20+0x39] = '\0'; //force last char to 0
 
 	p->write_hdsector(p->callback_data,
 					  p->part_lba+1+d->i*disc_info_sz_lba,
