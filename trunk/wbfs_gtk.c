@@ -119,7 +119,10 @@ static void set_label_double(const char *widget_name, const char *format, double
   char text[256];
 
   widget = get_widget(widget_name);
-  snprintf(text, sizeof(text), format, n);
+  if (format == NULL)
+    *text = '\0';
+  else
+    snprintf(text, sizeof(text), format, n);
   gtk_label_set_markup(GTK_LABEL(widget), text);
 }
 
@@ -312,12 +315,13 @@ static void update_iso_list(void)
   buf = wbfs_ioalloc(0x100);
   for (i = 0; i < n; i++)
     if (wbfs_get_disc_info(app_state.wbfs, i, buf, 0x100, &size) == 0) {
-      u8 code_txt[7], size_txt[20], *name_txt;
+      char code_txt[16], size_txt[32], name_txt[256];
 
       memcpy(code_txt, buf, 6);
       code_txt[6] = '\0';
-      snprintf((char *)size_txt, sizeof(size_txt), "%.2f GB", (size * 4ULL) / 1024.0 / 1024.0 / 1024.0);
-      name_txt = buf + 0x20;
+      snprintf(size_txt, sizeof(size_txt), "%.2f GB", (size * 4ULL) / 1024.0 / 1024.0 / 1024.0);
+      memcpy(name_txt, buf + 0x20, 0x40);
+      name_txt[0x39] = '\0';
 
       gtk_list_store_append(store, &iter);
       gtk_list_store_set(store, &iter,
@@ -363,9 +367,9 @@ static int load_device(void)
   captured_msgs = end_msg_capture();
   if (app_state.wbfs == NULL) {
     gtk_label_set_markup(GTK_LABEL(widget), "<b>(none)</b>");
-    set_label_double("label_total_space", "", 0.);
-    set_label_double("label_used_space", "", 0.);
-    set_label_double("label_free_space", "", 0.);
+    set_label_double("label_total_space", NULL, 0.);
+    set_label_double("label_used_space", NULL, 0.);
+    set_label_double("label_free_space", NULL, 0.);
     if (*captured_msgs != '\0')
       show_error("Error", "Can't open device '%s': %s.\n\n(Do you have appropriate permissions?)",
 		 app_state.dev[app_state.cur_dev],
