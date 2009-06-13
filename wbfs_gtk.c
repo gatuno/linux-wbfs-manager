@@ -28,6 +28,8 @@
 
 #define GLADE_XML_FILE "wbfs_gui.glade"
 
+#define BYTES_TO_GB(n) ((n) / 1024. / 1024. / 1024.)
+
 static GladeXML *glade_xml;
 static char cur_directory[PATH_MAX];
 static DIR_ITEM cur_dir_list[1024];
@@ -51,6 +53,10 @@ static int get_device_id(const char *device)
   return -1;
 }
 
+/**
+ * Get the device selected in the interface.
+ * The returned string must be freed with g_free().
+ */
 static int get_selected_device(char **device)
 {
   GtkListStore *store;
@@ -69,6 +75,10 @@ static int get_selected_device(char **device)
   return 0;
 }
 
+/**
+ * Get the file selected in the interface.
+ * The returned string must be freed with g_free().
+ */
 static int get_selected_file(int *mode, char **name)
 {
   GtkWidget *widget;
@@ -91,6 +101,10 @@ static int get_selected_file(int *mode, char **name)
   return 0;
 }
 
+/**
+ * Get the disc selected in the interface.
+ * The returned string must be freed with g_free().
+ */
 static int get_selected_disc(char **code, char **name)
 {
   GtkWidget *widget;
@@ -143,6 +157,7 @@ static void convert_discname_to_filename(char *filename, const char *discname, i
   filename[i] = '\0';
 }
 
+/* starter for "extract iso" operation */
 static int iso_extract_start(void *p, progress_updater update)
 {
   char **data = (char **) p;
@@ -150,6 +165,7 @@ static int iso_extract_start(void *p, progress_updater update)
   return op_extract_iso(data[0], data[1], update);
 }
 
+/* updater for "extract iso" operation */
 static void iso_extract_update(int cur, int max)
 {
   GtkWidget *widget;
@@ -167,6 +183,7 @@ static void iso_extract_update(int cur, int max)
   gtk_progress_bar_set_text(progress_bar, txt);
 }
 
+/* starter for "add iso" operation */
 static int iso_add_start(void *p, progress_updater update)
 {
   char *filename = (char *) p;
@@ -174,6 +191,7 @@ static int iso_add_start(void *p, progress_updater update)
   return op_add_iso(filename, update);
 }
 
+/* Updater for "add iso" operation */
 static void iso_add_update(int cur, int max)
 {
   GtkWidget *widget;
@@ -192,18 +210,58 @@ static void iso_add_update(int cur, int max)
 }
 
 /**
- * Add an ISO file to the WBFS partition.
- *
- * TODO: check if there's enough space in the partition.
+ * Ask confirmation and add an ISO file to the WBFS partition.
  */
-static void add_iso_file(char *filename)
+static void confirm_add_iso_file(char *filename)
 {
+  wbfs_disc_t *disc;
+  FILE *f;
   char iso_file_path[PATH_MAX];
-  char msg[256];
-  
+  char msg[512];
+  char code[16], disc_name[64];
+  long long free_space, used_space;
+
   snprintf(iso_file_path, sizeof(iso_file_path), "%s/%s", cur_directory, filename);
+
+  /* get ISO information */
+  f = fopen(iso_file_path, "r");
+  if (f == NULL) {
+    show_error("Add ISO", "Error: can't open file\n\n%s", iso_file_path);
+    return;
+  }
+  if (fread(code, 1, 6, f) != 6
+      || fseeko(f, 0x20, SEEK_SET) != 0
+      || fread(disc_name, 1, 0x40, f) != 0x40) {
+    fclose(f);
+    show_error("Add ISO", "Error: can't read file\n\n%s", iso_file_path);
+    return;
+  }
+  fclose(f);
+  code[6] = '\0';
+  disc_name[0x39] = '\0';
+
+  /* check if disc is not already there */
+  disc = wbfs_open_disc(app_state.wbfs, (u8 *) code);
+  if (disc != NULL) {
+    wbfs_close_disc(disc);
+    show_error("Add ISO", "The disc is already in the WBFS partition.");
+    return;
+  }
+
+  /* check if there's enough free space */
+  free_space = info_get_free_space();
+  used_space = info_get_iso_size(iso_file_path, NULL);
+  if (used_space > free_space) {
+    show_error("Error", "Not enough space in WBFS partition.\n\nYou have %.2fGB free, this disc uses %.2fGB",
+	       BYTES_TO_GB(free_space), BYTES_TO_GB(used_space));
+    return;
+  }
+  if (! show_confirmation("Add ISO", "Add ISO file '%s'?\n\nCode: %s\nTitle: %s\nSpace: %.2fGB",
+			  filename, code, disc_name, BYTES_TO_GB(used_space)))
+    return;
   
-  snprintf(msg, sizeof(msg), "Adding ISO file\n%s\n", filename);
+  /* add iso */
+  snprintf(msg, sizeof(msg), "Adding ISO file '%s'\n", filename);
   show_progress_dialog("Adding ISO", msg, iso_add_start, iso_file_path, iso_add_update, &cancel_wbfs_op, 0);
   update_iso_list();
 }
@@ -562,8 +620,8 @@ void fs_list_row_activated_cb(GtkTreeView *tree_view,
   case 0:
     if (app_state.wbfs == NULL)
       show_message("Add ISO", "You must first load a WBFS device.");
-    else if (show_confirmation("Add ISO", "Add ISO file '%s'?", filename))
-      add_iso_file(filename);
+    else
+      confirm_add_iso_file(filename);
     break;
 
   case 1:
@@ -746,8 +804,8 @@ void fs_add_iso_clicked_cb(GtkButton *b, gpointer user_data)
   if (get_selected_file(&mode, &filename)) {
     if (mode != 0)
       show_message("Add ISO", "Please select an ISO file.", filename);
-    else if (show_confirmation("Add ISO", "Add ISO file '%s'?", filename))
-      add_iso_file(filename);
+    else
+      confirm_add_iso_file(filename);
     
     g_free(filename);
   }

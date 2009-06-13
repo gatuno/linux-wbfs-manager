@@ -124,6 +124,46 @@ int op_extract_iso(char *code, char *filename, void (*update)(int, int))
   return 0;
 }
 
+long long info_get_free_space(void)
+{
+  unsigned int block_count;
+
+  block_count = wbfs_count_usedblocks(app_state.wbfs);
+  return (long long) app_state.wbfs->wbfs_sec_sz * block_count;
+}
+
+long long info_get_used_space(void)
+{
+  unsigned int block_count;
+
+  block_count = wbfs_count_usedblocks(app_state.wbfs);
+  return (long long) app_state.wbfs->wbfs_sec_sz * (app_state.wbfs->n_wbfs_sec - block_count);
+}
+
+long long info_get_total_space(void)
+{
+  return (long long) app_state.wbfs->n_wbfs_sec * app_state.wbfs->wbfs_sec_sz;
+}
+
+long long info_get_iso_size(char *filename, void (*update)(int, int))
+{
+  FILE *f;
+  unsigned int used_blocks;
+
+  f = fopen(filename, "r");
+  if (f == NULL)
+    return -1LL;
+  used_blocks = wbfs_count_added_disc_blocks(app_state.wbfs,
+					     read_wii_file,
+					     (void *) f,
+					     update,
+					     ONLY_GAME_PARTITION,
+					     0);
+  fclose(f);
+
+  return (unsigned long long) app_state.wbfs->wbfs_sec_sz * used_blocks;
+}
+
 int op_add_iso(char *filename, void (*update)(int, int))
 {
   FILE *f;
@@ -142,20 +182,22 @@ int op_add_iso(char *filename, void (*update)(int, int))
     return 1;
   }
   if (fread(code, 1, 6, f) != 6) {
-    show_error("Error Adding ISO", "Can't read disc ID from file '%s'.", filename);
     fclose(f);
+    show_error("Error Adding ISO", "Can't read disc ID from file '%s'.", filename);
     return 1;
   }
+  code[6] = '\0';
 
-  /* open disc */
+  /* check if disc is already there */
   disc = wbfs_open_disc(app_state.wbfs, (u8 *) code);
   if (disc != NULL) {
     wbfs_close_disc(disc);
-    show_error("Error Adding ISO", "The game is already in the WBFS partition.");
     fclose(f);
+    show_error("Error Adding ISO", "The disc is already in the WBFS partition.");
     return 1;
   }
 
+  /* add disc */
   ret = wbfs_add_disc(app_state.wbfs, read_wii_file, (void *) f, update, ONLY_GAME_PARTITION, 0, NULL);
   
   fclose(f);
