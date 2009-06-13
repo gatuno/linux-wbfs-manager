@@ -140,7 +140,7 @@ wbfs_t * wbfs_open_hd(rw_sector_callback_t read_hdsector,
 						close_callback_t close_hd,
 						void *callback_data,
 						int hd_sector_size, int num_hd_sector, int reset);
-	
+
 /*! @brief open a wbfs partition
    @param read_hdsector,write_hdsector: accessors to the partition
    @hd_sector_size: size of the hd sector. Can be set to zero if the partition in already initialized
@@ -191,6 +191,16 @@ u32 wbfs_get_disc_info(wbfs_t*p, u32 i,u8 *header,int header_size,u32 *size);
   to be multiplied by p->wbfs_sec_sz (use 64bit multiplication) to have the number in bytes
 */
 u32 wbfs_count_usedblocks(wbfs_t*p);
+
+/*! get the number of blocks to be used when a disc is added.
+  to be multiplied by p->wbfs_sec_sz (use 64bit multiplication) to have the number in bytes
+*/
+u32 wbfs_count_added_disc_blocks(wbfs_t*p,
+				 read_wiidisc_callback_t read_src_wii_disc,
+				 void *callback_data,
+				 progress_callback_t spinner,
+				 partition_selector_t sel,
+				 int copy_1_1);
 
 /******************* write access  ******************/
 

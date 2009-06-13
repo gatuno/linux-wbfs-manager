@@ -12,6 +12,12 @@
 extern int cancel_wbfs_op;
 
 void dump_wbfs_info(void);
+
+long long info_get_free_space(void);
+long long info_get_used_space(void);
+long long info_get_total_space(void);
+long long info_get_iso_size(char *filename, void (*update)(int, int));
+
 int op_init_partition(char *device);
 int op_extract_iso(char *code, char *filename, void (*progress_update)(int, int));
 int op_add_iso(char *filename, void (*update)(int, int));

@@ -455,6 +455,62 @@ static void free_block(wbfs_t *p,int bl)
 	p->freeblks[i] = wbfs_htonl(v | 1<<j);
 }
 
+u32 wbfs_count_added_disc_blocks
+	(
+		wbfs_t *p,
+		read_wiidisc_callback_t read_src_wii_disc,
+		void *callback_data,
+		progress_callback_t spinner,
+		partition_selector_t sel,
+		int copy_1_1
+	)
+{
+	int i, ok;
+	u32 wii_sec_per_wbfs_sect = 1 << (p->wbfs_sec_sz_s-p->wii_sec_sz_s);
+	u8 *used = 0;
+	wiidisc_t *d = 0;
+	u32 used_blocks = 0;
+
+	ok = 0;
+	used = wbfs_malloc(p->n_wii_sec_per_disc);
+	
+	if (!used)
+	{
+			ERROR("unable to alloc memory");
+	}
+  
+	if (!copy_1_1)
+	{
+		d = wd_open_disc(read_src_wii_disc, callback_data);
+		if(!d)
+		{
+			ERROR("unable to open wii disc");
+		}
+		wd_build_disc_usage(d, sel, used);
+		wd_close_disc(d);
+		d = 0;
+	}
+
+	for (i = 0; i < p->n_wbfs_sec_per_disc; i++)
+	{
+		if (copy_1_1 || block_used(used, i, wii_sec_per_wbfs_sect))
+		{
+			used_blocks++;
+			if (spinner)
+				spinner(0, used_blocks);
+		}
+	}
+
+	ok = 1;
+error:
+	if(d)
+			wd_close_disc(d);
+	if(used)
+			wbfs_free(used);
+	
+	return (ok) ? used_blocks : ~0;
+}
+
 u32 wbfs_add_disc
 	(
 		wbfs_t *p,
