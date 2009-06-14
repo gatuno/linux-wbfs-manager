@@ -12,13 +12,21 @@ LIBS = `pkg-config --libs gmodule-export-2.0 libglade-2.0`
 all: wbfs_gtk
 
 clean:
-	rm -f *~ libwbfs/*~ $(OBJS) wbfs_gtk
+	rm -f *~ libwbfs/*~ $(OBJS) wbfs_gui_glade.h file2h wbfs_gtk
 
 dist: clean
 	cd .. && tar cvzf linux-wbfs-manager-$(VERSION).tar.gz --exclude=.svn linux-wbfs-manager
 
+wbfs_gui_glade.h: wbfs_gui.glade file2h
+	./file2h $@ $<
+
+file2h: file2h.o
+	$(CC) $(LDFLAGS) -o $@ $<
+
 wbfs_gtk: $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
+
+wbfs_gtk.c: wbfs_gui_glade.h
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
