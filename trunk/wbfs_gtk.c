@@ -26,7 +26,7 @@
 
 #include "libwbfs.h"
 
-#define GLADE_XML_FILE "wbfs_gui.glade"
+#include "wbfs_gui_glade.h"
 
 #define BYTES_TO_GB(n) ((n) / 1024. / 1024. / 1024.)
 
@@ -900,7 +900,7 @@ int main(int argc, char *argv[])
   glade_init();
 
   /* load glade XML */
-  glade_xml = glade_xml_new(GLADE_XML_FILE, NULL, NULL);
+  glade_xml = glade_xml_new_from_buffer((char *) wbfs_gui_glade, sizeof(wbfs_gui_glade)-1, NULL, NULL);
   glade_xml_signal_autoconnect(glade_xml);
   init_widgets();
 
