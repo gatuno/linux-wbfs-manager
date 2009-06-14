@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
-<!--Generated with glade3 3.4.5 on Thu Jun 11 20:52:36 2009 -->
+<!--Generated with glade3 3.4.5 on Sun Jun 14 19:46:43 2009 -->
 <glade-interface>
   <widget class="GtkWindow" id="main_window">
     <property name="width_request">800</property>
@@ -230,41 +230,13 @@
                         <property name="n_rows">1</property>
                         <property name="n_columns">6</property>
                         <child>
-                          <widget class="GtkLabel" id="label5">
-                            <property name="visible">True</property>
-                            <property name="xalign">1</property>
-                            <property name="label" translatable="yes">Free:</property>
-                          </widget>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="label_free_space">
+                          <widget class="GtkLabel" id="label_total_space">
                             <property name="visible">True</property>
                             <property name="xalign">0</property>
                           </widget>
                           <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">2</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="label7">
-                            <property name="visible">True</property>
-                            <property name="xalign">1</property>
-                            <property name="label" translatable="yes">Used:</property>
-                          </widget>
-                          <packing>
-                            <property name="left_attach">2</property>
-                            <property name="right_attach">3</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="label_used_space">
-                            <property name="visible">True</property>
-                            <property name="xalign">0</property>
-                          </widget>
-                          <packing>
-                            <property name="left_attach">3</property>
-                            <property name="right_attach">4</property>
+                            <property name="left_attach">5</property>
+                            <property name="right_attach">6</property>
                           </packing>
                         </child>
                         <child>
@@ -279,14 +251,42 @@
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkLabel" id="label_total_space">
+                          <widget class="GtkLabel" id="label_used_space">
                             <property name="visible">True</property>
                             <property name="xalign">0</property>
                           </widget>
                           <packing>
-                            <property name="left_attach">5</property>
-                            <property name="right_attach">6</property>
+                            <property name="left_attach">3</property>
+                            <property name="right_attach">4</property>
                           </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkLabel" id="label7">
+                            <property name="visible">True</property>
+                            <property name="xalign">1</property>
+                            <property name="label" translatable="yes">Used:</property>
+                          </widget>
+                          <packing>
+                            <property name="left_attach">2</property>
+                            <property name="right_attach">3</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkLabel" id="label_free_space">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                          </widget>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkLabel" id="label5">
+                            <property name="visible">True</property>
+                            <property name="xalign">1</property>
+                            <property name="label" translatable="yes">Free:</property>
+                          </widget>
                         </child>
                       </widget>
                       <packing>
@@ -475,7 +475,7 @@
     <property name="type_hint">GDK_WINDOW_TYPE_HINT_NORMAL</property>
     <property name="transient_for">main_window</property>
     <property name="program_name">Linux WBFS Manager</property>
-    <property name="version">0.1.4</property>
+    <property name="version">0.1.7</property>
     <property name="copyright" translatable="yes">Copyright (C) 2009 Ricardo Massaro, Kwiirk, caristat</property>
     <property name="website">http://code.google.com/p/linux-wbfs-manager/</property>
     <property name="license" translatable="yes">GNU General Public License version 2
