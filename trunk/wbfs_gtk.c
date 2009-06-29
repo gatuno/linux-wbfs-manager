@@ -87,9 +87,6 @@ static int get_selected_file(int *mode, char **name)
   GtkTreeModel *model;
   GtkTreeIter iter;
 
-  if (app_state.wbfs == NULL)
-    return 0;
-
   widget = get_widget("fs_list");
   fs_list = GTK_TREE_VIEW(widget);
   sel = gtk_tree_view_get_selection(fs_list);
@@ -318,7 +315,7 @@ static void update_fs_list(void)
   }
 
   /* read new dir list */
-  if (list_dir_attr(cur_directory, "iso", cur_dir_list, sizeof(cur_dir_list)/sizeof(cur_dir_list[0])) == 0) {
+  if (list_dir_attr(cur_directory, "iso", (app_state.show_hidden_files) ? LISTDIR_SHOW_HIDDEN : 0, cur_dir_list, sizeof(cur_dir_list)/sizeof(cur_dir_list[0])) == 0) {
     for (i = 0; cur_dir_list[i].name != NULL; i++) {
       char size[32];
 
@@ -549,7 +546,7 @@ static void init_widgets(void)
 
   /* setup menus */
   widget = get_widget("menu_ignore_mounted_devices");
-  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget), app_state.ignore_mounted_devices);
+  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget), ! app_state.ignore_mounted_devices);
 
   /* setup device list store */
   widget = get_widget("device_list");
@@ -841,8 +838,14 @@ void menu_iso_remove_activate_cb(GtkWidget *w, gpointer data)
 
 void menu_ignore_mounted_devices_toggled_cb(GtkCheckMenuItem *c, gpointer data)
 {
-  app_state.ignore_mounted_devices = gtk_check_menu_item_get_active(c) ? 1 : 0;
+  app_state.ignore_mounted_devices = gtk_check_menu_item_get_active(c) ? 0 : 1;
   reload_device_list();
+}
+
+void menu_view_hidden_files_toggled_cb(GtkCheckMenuItem *c, gpointer data)
+{
+  app_state.show_hidden_files = gtk_check_menu_item_get_active(c) ? 1 : 0;
+  update_fs_list();
 }
 
 void menu_iso_rename_activate_cb(GtkWidget *w, gpointer data)
@@ -900,7 +903,7 @@ int main(int argc, char *argv[])
   glade_init();
 
   /* load glade XML */
-  glade_xml = glade_xml_new_from_buffer((char *) wbfs_gui_glade, sizeof(wbfs_gui_glade)-1, NULL, NULL);
+  glade_xml = glade_xml_new_from_buffer((char *) wbfs_gui_glade, sizeof(wbfs_gui_glade), NULL, NULL);
   glade_xml_signal_autoconnect(glade_xml);
   init_widgets();
 

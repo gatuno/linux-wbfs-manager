@@ -15,7 +15,11 @@ typedef struct DIR_ITEM {
   unsigned long long size;
 } DIR_ITEM;
 
+enum {
+  LISTDIR_SHOW_HIDDEN = 0x1,
+};
+
 int list_dir(const char *dir_name, const char *ext, char **list, int max_items);
-int list_dir_attr(const char *dir_name, const char *ext, DIR_ITEM *list, int max_items);
+int list_dir_attr(const char *dir_name, const char *ext, unsigned int flags, DIR_ITEM *list, int max_items);
 
 #endif /* LIST_DIR_FILE */
