@@ -22,6 +22,7 @@ static progress_starter prog_starter;
 static void *prog_starter_data;
 static int prog_starter_ret;
 static progress_updater prog_updater;
+static int transfer_running = 0;
 
 static void do_update(int cur, int max)
 {
@@ -44,9 +45,13 @@ void progress_dialog_map_event_cb(GtkWidget *w, gpointer data)
   if (prog_starter_data != NULL) {
     GtkWidget *progress_dialog;
 
-    prog_starter_ret = prog_starter(prog_starter_data, do_update);
-    progress_dialog = get_widget("progress_dialog");
-    gtk_widget_hide(progress_dialog);
+    if (! transfer_running) {
+      transfer_running = 1;
+      prog_starter_ret = prog_starter(prog_starter_data, do_update);
+      progress_dialog = get_widget("progress_dialog");
+      gtk_widget_hide(progress_dialog);
+      transfer_running = 0;
+    }
   }
 }
 
