@@ -66,7 +66,7 @@ int list_dir(const char *dir_name, const char *ext, char **list, int max_items)
   return 0;
 }
 
-int list_dir_attr(const char *dir_name, const char *ext, DIR_ITEM *list, int max_items)
+int list_dir_attr(const char *dir_name, const char *ext, unsigned int flags, DIR_ITEM *list, int max_items)
 {
   DIR *dir;
   struct dirent *ent;
@@ -82,6 +82,12 @@ int list_dir_attr(const char *dir_name, const char *ext, DIR_ITEM *list, int max
     char path[PATH_MAX];
     int is_dir;
     unsigned long long size;
+
+    /* ignore hidden */
+    if ((flags & LISTDIR_SHOW_HIDDEN) == 0) {
+      if (ent->d_name[0] == '.' && ent->d_name[1] != '\0' && ent->d_name[1] != '.')
+        continue;
+    }
 
     /* get item info */
     snprintf(path, sizeof(path), "%s/%s", dir_name, ent->d_name);
