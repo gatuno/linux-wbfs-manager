@@ -35,5 +35,5 @@ selected doesn't contain a WBFS partition.)
 
 The program lists devices `/dev/hd*` and `/dev/sd*`, excluding the devices
 it thinks are mounted (according to /proc/mounts). You may choose do
-list the mounted devices anyway by de-selecting this option in the menu "Tools ->
-Ignore mounted devices".
+list the mounted devices anyway by selecting this option in the menu "View ->
+Show mounted devices".
