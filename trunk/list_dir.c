@@ -104,7 +104,9 @@ int list_dir_attr(const char *dir_name, const char *ext, unsigned int flags, DIR
     if (ext != NULL && ! is_dir) {
       int ext_len = strlen(ext);
       
-      if (name_len < ext_len || strcmp(ent->d_name + name_len - ext_len, ext) != 0)
+      if (name_len < ext_len
+	  || ((flags & LISTDIR_CASE_INSENSITIVE) == 0 && strcmp(ent->d_name + name_len - ext_len, ext) != 0)
+	  || ((flags & LISTDIR_CASE_INSENSITIVE) != 0 && strcasecmp(ent->d_name + name_len - ext_len, ext) != 0))
         continue;
     }
 

@@ -17,6 +17,7 @@ typedef struct DIR_ITEM {
 
 enum {
   LISTDIR_SHOW_HIDDEN = 0x1,
+  LISTDIR_CASE_INSENSITIVE = 0x02,
 };
 
 int list_dir(const char *dir_name, const char *ext, char **list, int max_items);
