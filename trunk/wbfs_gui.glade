@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
-<!--Generated with glade3 3.4.5 on Sat Jul 18 14:42:09 2009 -->
+<!--Generated with glade3 3.4.5 on Sat Jul 18 14:47:09 2009 -->
 <glade-interface>
   <widget class="GtkWindow" id="main_window">
     <property name="width_request">800</property>
@@ -496,7 +496,7 @@
     <property name="type_hint">GDK_WINDOW_TYPE_HINT_NORMAL</property>
     <property name="transient_for">main_window</property>
     <property name="program_name">Linux WBFS Manager</property>
-    <property name="version">0.1.9</property>
+    <property name="version">0.1.10</property>
     <property name="copyright" translatable="yes">Copyright (C) 2009 Ricardo Massaro, Kwiirk, caristat</property>
     <property name="website">http://code.google.com/p/linux-wbfs-manager/</property>
     <property name="license" translatable="yes">GNU General Public License version 2
