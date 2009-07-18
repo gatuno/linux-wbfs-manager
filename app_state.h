@@ -16,6 +16,7 @@
 typedef struct APP_STATE {
   /* configuration */
   int ignore_mounted_devices;
+  int list_partitions;
   int show_hidden_files;
 
   /* data */
