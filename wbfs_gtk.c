@@ -293,7 +293,7 @@ static void update_fs_list(void)
   GtkWidget *widget;
   GtkTreeView *fs_list;
   GtkEntry *fs_cur_dir;
-  int i;
+  int i, list_dir_flags;
 
   widget = get_widget("fs_list");
   fs_list = GTK_TREE_VIEW(widget);
@@ -315,7 +315,10 @@ static void update_fs_list(void)
   }
 
   /* read new dir list */
-  if (list_dir_attr(cur_directory, "iso", (app_state.show_hidden_files) ? LISTDIR_SHOW_HIDDEN : 0, cur_dir_list, sizeof(cur_dir_list)/sizeof(cur_dir_list[0])) == 0) {
+  list_dir_flags = LISTDIR_CASE_INSENSITIVE;
+  if (app_state.show_hidden_files)
+    list_dir_flags |= LISTDIR_SHOW_HIDDEN;
+  if (list_dir_attr(cur_directory, "iso", list_dir_flags, cur_dir_list, sizeof(cur_dir_list)/sizeof(cur_dir_list[0])) == 0) {
     for (i = 0; cur_dir_list[i].name != NULL; i++) {
       char size[32];
 
