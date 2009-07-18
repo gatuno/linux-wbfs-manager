@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <glob.h>
@@ -213,25 +214,64 @@ int is_device_mounted(const char *device, char *mount_point, int max_len)
   return (mp != NULL) ? 1 : 0;
 }
 
-int list_available_devices(char **list, int max_items, int *preferred, int skip_mounted)
+int list_available_devices(char **list, int max_items, int *preferred, unsigned int flags)
 {
   MOUNT_ITEM mounts[256];
   glob_t gl;
+  FILE *f;
   int num_items, num_mounts;
   int i;
 
-  if (skip_mounted)
+  /* read mounted devices (if necessary) */
+  if (flags & LISTDEV_SKIP_MOUNTED)
     num_mounts = read_mounts(mounts, sizeof(mounts)/sizeof(mounts[0]));
   else
     num_mounts = 0;
 
-  gl.gl_offs = 0;
-  glob("/dev/hd*", 0, NULL, &gl);
-  glob("/dev/sd*", GLOB_APPEND, NULL, &gl);
+  /* read all available partitions */
   num_items = 0;
-  for (i = 0; i < gl.gl_pathc && num_items < max_items; i++) {
-    if (check_device_mounted(gl.gl_pathv[i], mounts, num_mounts) == NULL)
-      list[num_items++] = strdup(gl.gl_pathv[i]);
+  if (flags & LISTDEV_LIST_PARTITIONS)
+    f = fopen("/proc/partitions", "r");
+  else
+    f = NULL;
+  if (f != NULL) {
+    /* read /proc/partitions */
+    char line[1024], *p, *save;
+    char dev[256];
+    int line_num = 0;
+
+    while (42) {
+      int n;
+
+      line[0] = '\0';
+      if (fgets(line, sizeof(line), f) == NULL)
+	break;
+      if (line_num++ == 0)
+	continue;
+      p = strtok_r(line, " \t\r\n", &save);
+      n = 0;
+      while (p != NULL && n++ < 3) {
+	p = strtok_r(NULL, " \t\r\n", &save);
+	if (p != NULL && n == 2 && (p[0] == '0' || p[0] == '1') && p[1] == '\0')
+	  p = NULL;
+      }
+
+      if (p != NULL) {
+	snprintf(dev, sizeof(dev), "/dev/%s", p);
+	if (check_device_mounted(dev, mounts, num_mounts) == NULL)
+	  list[num_items++] = strdup(dev);
+      }	
+    }
+    fclose(f);
+  } else {
+    /* list /dev/[hs]d* */
+    gl.gl_offs = 0;
+    glob("/dev/hd*", 0, NULL, &gl);
+    glob("/dev/sd*", GLOB_APPEND, NULL, &gl);
+    for (i = 0; i < gl.gl_pathc && num_items < max_items; i++) {
+      if (check_device_mounted(gl.gl_pathv[i], mounts, num_mounts) == NULL)
+	list[num_items++] = strdup(gl.gl_pathv[i]);
+    }
   }
 
   free_mounts(mounts, num_mounts);

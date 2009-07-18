@@ -550,6 +550,10 @@ static void init_widgets(void)
   /* setup menus */
   widget = get_widget("menu_ignore_mounted_devices");
   gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget), ! app_state.ignore_mounted_devices);
+  widget = get_widget("menu_view_hidden_files");
+  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget), app_state.show_hidden_files);
+  widget = get_widget("menu_view_partitions");
+  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget), app_state.list_partitions);
 
   /* setup device list store */
   widget = get_widget("device_list");
@@ -849,6 +853,12 @@ void menu_view_hidden_files_toggled_cb(GtkCheckMenuItem *c, gpointer data)
 {
   app_state.show_hidden_files = gtk_check_menu_item_get_active(c) ? 1 : 0;
   update_fs_list();
+}
+
+void menu_view_partitions_toggled_cb(GtkCheckMenuItem *c, gpointer data)
+{
+  app_state.list_partitions = gtk_check_menu_item_get_active(c) ? 1 : 0;
+  reload_device_list();
 }
 
 void menu_iso_rename_activate_cb(GtkWidget *w, gpointer data)

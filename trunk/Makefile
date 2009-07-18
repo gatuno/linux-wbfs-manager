@@ -26,7 +26,7 @@ file2h: file2h.o
 wbfs_gtk: $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
 
-wbfs_gtk.c: wbfs_gui_glade.h
+wbfs_gtk.o: wbfs_gui_glade.h
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<

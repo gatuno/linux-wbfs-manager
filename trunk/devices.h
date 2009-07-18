@@ -9,7 +9,12 @@
 #ifndef DEVICES_H_FILE
 #define DEVICES_H_FILE
 
+enum {
+  LISTDEV_SKIP_MOUNTED = 0x01,
+  LISTDEV_LIST_PARTITIONS = 0x02,
+};
+
 int is_device_mounted(const char *device, char *mount_point, int max_len);
-int list_available_devices(char **list, int max_items, int *preferred, int skip_mounted);
+int list_available_devices(char **list, int max_items, int *preferred, unsigned int flags);
 
 #endif /* DEVICES_H_FILE */
