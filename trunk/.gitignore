@@ -1,0 +1,15 @@
+*~
+*.o
+
+core
+.gdb_history
+.gdbinit
+
+*.orig
+*.rej
+*.diff
+*.patch
+
+file2h
+wbfs_gtk
+wbfs_gui_glade.h
