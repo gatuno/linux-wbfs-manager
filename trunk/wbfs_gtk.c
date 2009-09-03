@@ -318,7 +318,7 @@ static void update_fs_list(void)
   list_dir_flags = LISTDIR_CASE_INSENSITIVE;
   if (app_state.show_hidden_files)
     list_dir_flags |= LISTDIR_SHOW_HIDDEN;
-  if (list_dir_attr(cur_directory, "iso", list_dir_flags, cur_dir_list, sizeof(cur_dir_list)/sizeof(cur_dir_list[0])) == 0) {
+  if (list_dir_attr(cur_directory, "iso", list_dir_flags, cur_dir_list, ARRAY_SIZE(cur_dir_list)) == 0) {
     for (i = 0; cur_dir_list[i].name != NULL; i++) {
       char size[32];
 
