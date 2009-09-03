@@ -25,89 +25,6 @@ typedef struct MOUNT_ITEM {
   char *mount_point;
 } MOUNT_ITEM;
 
-/**
- * Remove '..' and '.' entries from path.
- */
-static void normalize_path(char *path)
-{
-  char *buf, *tmp, *save;
-  char *parts[256];
-  char *used_parts[256];
-  int num_parts, num_used_parts, i;
-
-  save = NULL;  /* keep GCC happy */
-  tmp = buf = strdup(path);
-
-  /* split path in the '/'s */
-  i = 0;
-  if (path[0] == '/') {
-    parts[0] = "";
-    i = 1;
-  }
-  while (i < sizeof(parts)/sizeof(parts[0])) {
-    parts[i] = strtok_r(tmp, "/", &save);
-    if (parts[i] == NULL)
-      break;
-    tmp = NULL;
-    i++;
-  }
-  num_parts = i;
-
-  /* rebuild path with necessary parts */
-  num_used_parts = 0;
-  for (i = 0; i < num_parts; i++) {
-    if (strcmp(parts[i], ".") == 0)
-      continue;
-    if (strcmp(parts[i], "..") == 0) {
-      if (num_used_parts > 0)
-	num_used_parts--;
-      continue;
-    }
-    used_parts[num_used_parts++] = parts[i];
-  }
-
-  for (i = 0; i < num_used_parts; i++) {
-    int len;
-
-    len = strlen(used_parts[i]);
-    memcpy(path, used_parts[i], len);
-    path += len;
-    if (i+1 < num_used_parts)
-      *path++ = '/';
-    *path = '\0';
-  }
-
-  free(tmp);
-}
-
-static void resolve_symlink(char *ret, const char *symlink, const char *link_dest, int max_len)
-{
-  const char *last_slash;
-  int len;
-
-  /* if link dest is absolute or symlink has no directories, return the link dest */
-  if (link_dest[0] == '/' || (last_slash = strrchr(symlink, '/')) == NULL) {
-    strncpy(ret, link_dest, max_len);
-    ret[max_len-1] = '\0';
-    return;
-  }
-
-  last_slash++;
-  len = last_slash - symlink;
-
-  /* there's no space on ret, just return now whith what we have */
-  if (len >= max_len) {
-    strncpy(ret, symlink, max_len);
-    ret[max_len-1] = '\0';
-    return;
-  }
-  
-  strncpy(ret, symlink, len);
-  strncpy(ret + len, link_dest, max_len - len);
-  ret[max_len-1] = '\0';
-  normalize_path(ret);
-}
-
 static void free_mounts(MOUNT_ITEM *mounts, int num_mounts)
 {
   int i;
@@ -129,8 +46,6 @@ static int read_mounts(MOUNT_ITEM *mounts, int max_items)
     return -1;
   while (num_items < max_items) {
     MOUNT_ITEM *item;
-    char link_dest[PATH_MAX];
-    ssize_t link_size;
     char *p_device, *p_mount_point;
     char *p_save;
 
@@ -146,19 +61,18 @@ static int read_mounts(MOUNT_ITEM *mounts, int max_items)
     if (p_mount_point == NULL)
       continue;
 
-    /* check if device is a symbolic link */
-    link_size = readlink(p_device, link_dest, sizeof(link_dest)-1);
-    if (link_size >= 0) {
-      link_dest[link_size] = '\0';
-      if (link_dest[0] != '/') {
-	char tmp[PATH_MAX];
-	resolve_symlink(tmp, p_device, link_dest, sizeof(tmp));
-	strcpy(link_dest, tmp);
-      }
-      p_device = link_dest;
-    }
+    /* make sure we aren't dealing with a pseudo mount (i.e. /sys) */
+    if (p_device[0] != '/')
+      continue;
+
+    /* resolve the device in case of symlink */
+    p_device = realpath(p_device, NULL);
+
+    /* maybe the source is networked, so skip it (i.e. //foo/pnt) */
+    if (p_device == NULL)
+	continue;
     item = mounts + num_items++;
-    item->device = strdup(p_device);
+    item->device = p_device;
     item->mount_point = strdup(p_mount_point);
   }
   fclose(f);
