@@ -48,9 +48,9 @@ int list_dir(const char *dir_name, const char *ext, char **list, int max_items)
     return 1;
   n = 0;
   while (n+1 < max_items && (ent = readdir(dir)) != NULL) {
-    int name_len = strlen(ent->d_name);
+    size_t name_len = strlen(ent->d_name);
     if (ext != NULL) {
-      int ext_len = strlen(ext);
+      size_t ext_len = strlen(ext);
       
       if (name_len < ext_len || strcmp(ent->d_name + name_len - ext_len, ext) != 0)
         continue;
@@ -78,7 +78,7 @@ int list_dir_attr(const char *dir_name, const char *ext, unsigned int flags, DIR
   n = 0;
   while (n+1 < max_items && (ent = readdir(dir)) != NULL) {
     struct stat st;
-    int name_len;
+    size_t name_len;
     char path[PATH_MAX];
     int is_dir;
     unsigned long long size;
@@ -102,7 +102,7 @@ int list_dir_attr(const char *dir_name, const char *ext, unsigned int flags, DIR
     /* check extension (if not directory) */
     name_len = strlen(ent->d_name);
     if (ext != NULL && ! is_dir) {
-      int ext_len = strlen(ext);
+      size_t ext_len = strlen(ext);
       
       if (name_len < ext_len
 	  || ((flags & LISTDIR_CASE_INSENSITIVE) == 0 && strcmp(ent->d_name + name_len - ext_len, ext) != 0)

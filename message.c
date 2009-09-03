@@ -19,7 +19,7 @@
 
 static int capturing_msgs = 0;
 static char captured_msgs[1024];
-static int captured_msgs_size;
+static size_t captured_msgs_size;
 
 static GtkResponseType show_dialog_message(const char *title, const char *msg, GtkMessageType type, GtkButtonsType buttons)
 {
