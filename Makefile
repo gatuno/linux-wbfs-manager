@@ -1,11 +1,16 @@
 
-CC = gcc
-CFLAGS = -O2 -Wall -DLARGE_FILES -D_FILE_OFFSET_BITS=64 -Ilibwbfs -I. `pkg-config --cflags gmodule-export-2.0 libglade-2.0`
-LDFLAGS = -s
+CC ?= gcc
+BUILD_CC ?= $(CC)
+CFLAGS ?= -O2
+CFLAGS += -Wall
+CPPFLAGS += -DLARGE_FILES -D_FILE_OFFSET_BITS=64
+CPPFLAGS += -Ilibwbfs -I.
+CPPFLAGS := $(CPPFLAGS) $(shell pkg-config --cflags gmodule-export-2.0 libglade-2.0)
+LDFLAGS ?= -s
 
 OBJS = wbfs_gtk.o libwbfs_os.o wbfs_ops.o message.o app_state.o devices.o progress.o list_dir.o $(foreach f,$(LIBWBFS_OBJS),libwbfs/$(f))
 LIBWBFS_OBJS = libwbfs.o libwbfs_unix.o wiidisc.o rijndael.o
-LIBS = `pkg-config --libs gmodule-export-2.0 libglade-2.0`
+LDLIBS := $(shell pkg-config --libs gmodule-export-2.0 libglade-2.0)
 
 .PHONY: all clean dist
 
@@ -21,12 +26,9 @@ wbfs_gui_glade.h: wbfs_gui.glade file2h
 	./file2h $@ $<
 
 file2h: file2h.o
-	$(CC) $(LDFLAGS) -o $@ $<
+	$(BUILD_CC) -o $@ $<
 
 wbfs_gtk: $(OBJS)
-	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
 
 wbfs_gtk.o: wbfs_gui_glade.h
-
-%.o: %.c
-	$(CC) $(CFLAGS) -o $@ -c $<
