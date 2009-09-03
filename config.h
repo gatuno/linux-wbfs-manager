@@ -14,4 +14,8 @@
 #define PATH_MAX 1024
 #endif
 
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+#endif
+
 #endif /* CONFIG_H_FILE */

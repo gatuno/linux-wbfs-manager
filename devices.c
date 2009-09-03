@@ -113,7 +113,7 @@ int is_device_mounted(const char *device, char *mount_point, int max_len)
   MOUNT_ITEM mounts[256];
   const char *mp;
 
-  num_mounts = read_mounts(mounts, sizeof(mounts)/sizeof(mounts[0]));
+  num_mounts = read_mounts(mounts, ARRAY_SIZE(mounts));
   mp = check_device_mounted(device, mounts, num_mounts);
   if (mp != NULL && mount_point != NULL) {
     strncpy(mount_point, mp, max_len);
@@ -134,7 +134,7 @@ int list_available_devices(char **list, int max_items, int *preferred, unsigned 
 
   /* read mounted devices (if necessary) */
   if (flags & LISTDEV_SKIP_MOUNTED)
-    num_mounts = read_mounts(mounts, sizeof(mounts)/sizeof(mounts[0]));
+    num_mounts = read_mounts(mounts, ARRAY_SIZE(mounts));
   else
     num_mounts = 0;
 
