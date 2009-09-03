@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <glob.h>
+#include <mntent.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -38,28 +39,23 @@ static void free_mounts(MOUNT_ITEM *mounts, int num_mounts)
 static int read_mounts(MOUNT_ITEM *mounts, int max_items)
 {
   FILE *f;
-  char line[1024];
   int num_items = 0;
 
-  f = fopen("/proc/mounts", "r");
+  f = setmntent("/proc/mounts", "r");
   if (f == NULL)
     return -1;
   while (num_items < max_items) {
     MOUNT_ITEM *item;
+    struct mntent *ent;
     char *p_device, *p_mount_point;
-    char *p_save;
 
-    line[0] = '\0';
-    if (fgets(line, sizeof(line), f) == NULL)
+    ent = getmntent(f);
+    if (ent == NULL)
       break;
 
     /* get device and mount point */
-    p_device = strtok_r(line, " \t", &p_save);
-    if (p_device == NULL)
-      continue;
-    p_mount_point = strtok_r(NULL, " \t", &p_save);
-    if (p_mount_point == NULL)
-      continue;
+    p_device = ent->mnt_fsname;
+    p_mount_point = ent->mnt_dir;
 
     /* make sure we aren't dealing with a pseudo mount (i.e. /sys) */
     if (p_device[0] != '/')
@@ -75,7 +71,7 @@ static int read_mounts(MOUNT_ITEM *mounts, int max_items)
     item->device = p_device;
     item->mount_point = strdup(p_mount_point);
   }
-  fclose(f);
+  endmntent(f);
   return num_items;
 }
 
