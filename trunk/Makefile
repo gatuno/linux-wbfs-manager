@@ -1,5 +1,9 @@
 
+ifeq ($(origin CC),default)
+CC = gcc
+else
 CC ?= gcc
+endif
 BUILD_CC ?= $(CC)
 CFLAGS ?= -O2
 CFLAGS += -Wall
