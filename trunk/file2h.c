@@ -1,4 +1,4 @@
-
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -31,13 +31,13 @@ static int file2c(const char *progname, const char *out_file, const char *in_fil
 
   in = fopen(in_file, "r");
   if (! in) {
-    printf("%s: can't open '%s'\n", progname, in_file);
+    printf("%s: can't open '%s': %s\n", progname, in_file, strerror(errno));
     return 1;
   }
   out = fopen(out_file, "w");
   if (! out) {
     fclose(in);
-    printf("%s: can't open '%s'\n", progname, out_file);
+    printf("%s: can't open '%s': %s\n", progname, out_file, strerror(errno));
     return 1;
   }
 
