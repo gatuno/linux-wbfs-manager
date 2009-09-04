@@ -244,6 +244,7 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="events">GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_STRUCTURE_MASK</property>
+                            <property name="search_column">1</property>
                             <signal name="button_release_event" handler="iso_list_button_release_event_cb"/>
                           </widget>
                         </child>
@@ -448,6 +449,7 @@
                       <widget class="GtkTreeView" id="fs_list">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="search_column">1</property>
                         <signal name="row_activated" handler="fs_list_row_activated_cb"/>
                       </widget>
                     </child>
