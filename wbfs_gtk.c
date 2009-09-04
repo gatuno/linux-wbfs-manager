@@ -575,6 +575,7 @@ static void init_widgets(void)
   gtk_tree_view_set_model(iso_list, GTK_TREE_MODEL(list_store));
   g_object_unref(list_store);
   col = gtk_tree_view_get_column(iso_list, 1);
+  gtk_tree_view_column_set_sort_column_id(col, 1);
   gtk_tree_view_column_set_expand(col, 1);
 
   /* setup fs list store and model */
