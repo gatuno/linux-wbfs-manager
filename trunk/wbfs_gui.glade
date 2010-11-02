@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <glade-interface>
   <!-- interface-requires gtk+ 2.16 -->
   <!-- interface-naming-policy toplevel-contextual -->
@@ -390,7 +390,7 @@
                     <property name="visible">True</property>
                     <child>
                       <widget class="GtkButton" id="fs_go_home">
-                        <property name="label" translatable="yes">gtk-home</property>
+                        <property name="label">gtk-home</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
@@ -417,7 +417,7 @@
                     </child>
                     <child>
                       <widget class="GtkButton" id="fs_set_dir">
-                        <property name="label" translatable="yes">gtk-ok</property>
+                        <property name="label">gtk-ok</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
@@ -504,7 +504,7 @@
     <property name="type_hint">normal</property>
     <property name="transient_for">main_window</property>
     <property name="program_name">Linux WBFS Manager</property>
-    <property name="version">0.1.11</property>
+    <property name="version">0.1.12</property>
     <property name="copyright" translatable="yes">Copyright (C) 2009 Ricardo Massaro, Kwiirk, caristat</property>
     <property name="website">http://code.google.com/p/linux-wbfs-manager/</property>
     <property name="license" translatable="yes">GNU General Public License version 2
@@ -516,6 +516,7 @@ libwbfs: Kwiirk, caristat
 Patches from:
 eoin.mcloughlin
 Mike Frysinger
+Andreas Henriksson
 </property>
     <signal name="response" handler="about_dialog_response_cb"/>
     <child internal-child="vbox">
@@ -551,7 +552,6 @@ Mike Frysinger
     <property name="window_position">center-on-parent</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">main_window</property>
-    <property name="has_separator">False</property>
     <signal name="close" handler="progress_dialog_close_cb"/>
     <signal name="map_event" handler="progress_dialog_map_event_cb"/>
     <child internal-child="vbox">
@@ -665,7 +665,6 @@ Mike Frysinger
     <property name="window_position">center-on-parent</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">main_window</property>
-    <property name="has_separator">False</property>
     <signal name="response" handler="input_dialog_response_cb"/>
     <child internal-child="vbox">
       <widget class="GtkVBox" id="dialog-vbox3">
@@ -696,7 +695,7 @@ Mike Frysinger
             <property name="layout_style">end</property>
             <child>
               <widget class="GtkButton" id="input_dialog_cancel">
-                <property name="label" translatable="yes">gtk-cancel</property>
+                <property name="label">gtk-cancel</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -710,7 +709,7 @@ Mike Frysinger
             </child>
             <child>
               <widget class="GtkButton" id="input_dialog_ok">
-                <property name="label" translatable="yes">gtk-ok</property>
+                <property name="label">gtk-ok</property>
                 <property name="response_id">1</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
