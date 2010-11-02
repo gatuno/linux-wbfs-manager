@@ -701,8 +701,36 @@ void main_window_realize_cb(GtkWidget *w, gpointer data)
   }
 }
 
-void main_window_delete_event_cb(GtkWidget *w, gpointer data)
+void main_window_delete_event_cb(GtkWidget *widget, gpointer data)
 {
+  GtkWindow *main_window;
+  int h,w,x,y;
+  struct passwd *pw;
+  FILE *f;
+
+  main_window = GTK_WINDOW(get_widget("main_window"));
+  gtk_window_get_size (main_window, &w, &h);
+  gtk_window_get_position (main_window, &x, &y);
+
+  pw = getpwuid (getuid ());
+  if (pw)
+  {
+    int len = strlen (pw->pw_dir) + 15;
+    char *path = malloc(len);
+
+    snprintf(path, len, "%s/%s", pw->pw_dir, ".wbfs_gtk");
+
+    f = fopen (path, "w");
+    if (f)
+    {
+      fprintf(f, "[wbfs_gtk]\nwidth=%d\nheight=%d\nx=%d\ny=%d\n",
+              w, h, x, y);
+      fclose (f);
+    }
+    free (path);
+  }
+
+
   gtk_main_quit();
 }
 
@@ -915,6 +943,41 @@ void menu_quit_activate_cb(GtkWidget *w, gpointer data)
   gtk_main_quit();
 }
 
+void restore_main_window_size_pos (GtkWindow *main_window)
+{
+  struct passwd *pw;
+  char *path;
+  FILE *f;
+  int len;
+  gint w, h, x, y;
+
+  pw = getpwuid (getuid ());
+  if (!pw)
+    return;
+
+  len = strlen (pw->pw_dir) + 15;
+  path = malloc (len);
+
+  snprintf(path, len, "%s/%s", pw->pw_dir, ".wbfs_gtk");
+
+  f = fopen (path, "r");
+
+  if (!f)
+    goto out;
+
+  if (fscanf (f, "[wbfs_gtk]\nwidth=%d\nheight=%d\nx=%d\ny=%d\n",
+              &w, &h, &x, &y) != 4)
+	  goto out2;
+
+  gtk_window_move (main_window, x, y);
+  gtk_window_resize (main_window, w, h);
+
+out2:
+  fclose (f);
+out:
+  free (path);
+}
+
 int main(int argc, char *argv[])
 {
   GtkWidget *main_window;
@@ -930,6 +993,7 @@ int main(int argc, char *argv[])
 
   /* show main window */
   main_window = get_widget("main_window");
+  restore_main_window_size_pos (GTK_WINDOW(main_window));
   gtk_widget_show(main_window);
 
   gtk_main();
