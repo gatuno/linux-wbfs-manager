@@ -652,10 +652,10 @@ void fs_list_row_activated_cb(GtkTreeView *tree_view,
 
 void fs_go_home_clicked_cb(GtkButton *b, gpointer data)
 {
-  char *login;
   struct passwd *pw;
 
-  if ((login = getlogin()) == NULL || (pw = getpwnam(login)) == NULL)
+  pw = getpwuid (getuid());
+  if (!pw)
     show_error("Error", "Can't get home directory for current user.");
   else if (chdir(pw->pw_dir) != 0)
     show_error("Error", "Can't change to directory '%s'.", pw->pw_dir);
