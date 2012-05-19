@@ -10,8 +10,7 @@ To compile the program, you will need
 Most Linux distributions have these as development packages. In Ubuntu, for example, you have to install `libgtk2.0-dev` and `libglade2-dev`:
 
 {{{
-  sudo apt-get install libgtk2.0-dev
-  sudo apt-get install libglade2-dev
+  sudo apt-get install libgtk2.0-dev libglade2-dev
 }}}
 
 = Compilation =
