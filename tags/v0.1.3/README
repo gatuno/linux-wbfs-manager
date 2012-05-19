@@ -13,6 +13,32 @@ This might eat all your partitions. I offer no warranty
 whatsoever. Use at your own risk.
 
 
+=== Requirements ===
+
+To compile the program, you will need to have installed:
+
+  * GTK+
+  * Libglade2
+
+=== Compilation ===
+
+To compile the program, enter:
+
+cd path/to/source
+make
+
+
+=== Installation ===
+
+Installation is optional, but if you want to, then simply copy the executable to a directory in your usr path. For example:
+
+sudo cp wbfs_gtk /usr/local/bin
+
+If you choose to install wbfs_gtk, then the command to run it is just:
+
+sudo wbfs_gtk
+
+
 === USAGE ===
 
 You must have access to your raw block devices. On most systems, this
